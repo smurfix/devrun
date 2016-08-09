@@ -1,0 +1,63 @@
+#!/usr/bin/python3
+
+from asyncio import get_event_loop
+
+class Conn(object):
+    def __init__(self,processor, first):
+        self.processor = processor
+        self.first = first
+
+    def connection_made(self,transport):
+        super().connection_made(transport)
+        self.transport = transport
+        if self.first:
+            self.processor.main = self
+        else:
+            self.processor.jobs.add(self)
+
+    def connection_lost(self,exc):
+        super().connection_lost(exc)
+        if self.first:
+            self.processor.main = None
+        else:
+            self.processor.jobs.remove(self)
+
+    def data_received(self, d):
+        if self.first:
+            for x in self.processor.jobs:
+                x.write(d)
+        else:
+            self.processor.main.write(d)
+
+    def write(d):
+        self.transport.write(d)
+
+class Processor(object):
+    def __init__(self, loop=None):
+        self.loop = loop
+        self.jobs = set()
+        self.main = None
+
+    async def process(self, *args):
+        first = True
+        for arg in args:
+            try:
+                host,port = arg.split(':',1)
+            except ValueError:
+                host = arg
+                port = 50757
+            else:
+                port = int(port)
+                assert port > 0
+            c = await self.loop.create_connection(lambda: Conn(self,first), host,port)
+            first = False
+
+
+def main(*args):
+    global loop
+    loop = get_event_loop()
+    p = Processor(loop)
+    run_until_complete(p.process(*args)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
