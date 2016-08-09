@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-from asyncio import get_event_loop
+from asyncio import get_event_loop,Event, Protocol
 
-class Conn(object):
+class Conn(Protocol):
     def __init__(self,processor, first):
         self.processor = processor
         self.first = first
@@ -19,6 +19,7 @@ class Conn(object):
         super().connection_lost(exc)
         if self.first:
             self.processor.main = None
+            self.processor.evt.set()
         else:
             self.processor.jobs.remove(self)
 
@@ -29,7 +30,7 @@ class Conn(object):
         else:
             self.processor.main.write(d)
 
-    def write(d):
+    def write(self,d):
         self.transport.write(d)
 
 class Processor(object):
@@ -37,8 +38,11 @@ class Processor(object):
         self.loop = loop
         self.jobs = set()
         self.main = None
+        self.evt = Event(loop=loop)
 
     async def process(self, *args):
+        assert args
+
         first = True
         for arg in args:
             try:
@@ -51,13 +55,18 @@ class Processor(object):
                 assert port > 0
             c = await self.loop.create_connection(lambda: Conn(self,first), host,port)
             first = False
+        await self.evt.wait()
+        for j in self.jobs:
+            j.transport.close()
 
 
 def main(*args):
     global loop
     loop = get_event_loop()
     p = Processor(loop)
-    run_until_complete(p.process(*args)
+    loop.run_until_complete(p.process(*args))
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    import sys
+    main(*sys.argv[1:])
+
