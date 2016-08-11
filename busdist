@@ -33,6 +33,25 @@ class Conn(Protocol):
     def write(self,d):
         self.transport.write(d)
 
+class Outer(object):
+    def __init__(self,processor):
+        self.processor = processor
+        processor.loop.add_reader(sys.stdin.fileno(), self.read_stdin)
+        processor.jobs.add(self)
+    def close(self):
+        pass
+    def write(self,d):
+        sys.stdout.write(d.decode('utf-8'))
+    def read_stdin(self):
+        r = sys.stdin.readline().strip() + '\r\n'
+        r = r.encode('utf-8')
+        if self.processor.main:
+            self.processor.main.write(r)
+        for x in self.processor.jobs:
+            if isinstance(x,Outer):
+                continue
+            x.write(r)
+
 class Processor(object):
     def __init__(self, loop=None):
         self.loop = loop
@@ -42,9 +61,14 @@ class Processor(object):
 
     async def process(self, *args):
         assert args
+        io = None
 
         first = True
         for arg in args:
+            if arg == '-':
+                assert io is None
+                io = Outer(self)
+                continue
             try:
                 host,port = arg.split(':',1)
             except ValueError:
@@ -68,5 +92,8 @@ def main(*args):
 
 if __name__ == "__main__":
     import sys
-    main(*sys.argv[1:])
+    try:
+        main(*sys.argv[1:])
+    except KeyboardInterrupt:
+        pass
 
