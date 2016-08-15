@@ -1,56 +1,296 @@
 #!/usr/bin/python3
 
-from asyncio import get_event_loop,Event, Protocol
+from asyncio import get_event_loop, ensure_future, wait_for, sleep, Event, Protocol, Future, Queue, TimeoutError, CancelledError
+from functools import partial
+import signal
+from traceback import print_exc,print_exception
 
-class Conn(Protocol):
-    def __init__(self,processor, first):
+mon = False
+
+class NoData(RuntimeError):
+    pass
+
+class ReqReply:
+    lead = None
+    def __init__(self, nr,a,b=None, *, callback=None):
+        self.nr = nr
+        self.a = a
+        self.b = b
+
+    def __str__(self):
+        return self.bytes().decode('ascii').strip()
+
+    def bytes(self, to_main=False):
+        r = self.lead + (chr(ord('q')-1+self.nr) if to_main else '%d'%self.nr) + ' %02d'%self.a
+        if self.b is not None:
+            r += ' ' + self.b
+        r += '\r\n'
+        return r.encode('ascii')
+
+    @staticmethod
+    def build(s,callback=None):
+        s = s.decode('ascii')
+        if s[0] == Request.lead:
+            c = Request
+        elif s[0] == Reply.lead:
+            c = Reply
+        else:
+            raise RuntimeError('Unknown input: '+repr(s))
+        s = s[1:].strip('\n').strip('\r').strip(' ').split(' ')
+        if s[0] >= 'q' and s[0] <= 'x':
+            s[0] = ord(s[0])-ord('p')
+        else:
+            s[0] = int(s[0])
+        s[1] = int(s[1])
+#        if len(s) > 2:
+#            try:
+#                s[2] = int(s[2])
+#            except ValueError:
+#                pass
+
+        return c(*s)
+
+class Request(ReqReply):
+    lead = '!'
+class Reply(ReqReply):
+    lead = '>'
+
+class _Conn(Protocol):
+    s=0
+    def __init__(self,processor):
         self.processor = processor
-        self.first = first
 
     def connection_made(self,transport):
         super().connection_made(transport)
         self.transport = transport
-        if self.first:
-            self.processor.main = self
-        else:
-            self.processor.jobs.add(self)
 
-    def connection_lost(self,exc):
-        super().connection_lost(exc)
-        if self.first:
-            self.processor.main = None
-            self.processor.evt.set()
-        else:
-            self.processor.jobs.remove(self)
+    def _callback(self):
+        raise RuntimeError("what callback?")
 
     def data_received(self, d):
-        if self.first:
-            for x in self.processor.jobs:
-                x.write(d)
+        try:
+            d = ReqReply.build(d)
+        except ValueError:
+            print("Not decodeable",repr(d))
         else:
-            self.processor.main.write(d)
+            self.msg_received(d)
 
     def write(self,d):
         self.transport.write(d)
 
-class Outer(object):
+    def close(self):
+        self.transport.close()
+
+class Conn(_Conn):
+    t = None
+    q = None
+    req = None
+    req_msg = None
+
+    def __init__(self,processor):
+        super().__init__(processor)
+        self.q = Queue()
+        self.e = Event()
+        self.t = ensure_future(self._work())
+
+    async def _work(self):
+        await sleep(0.5)
+        self.transport.write(b'XXX\r\n')
+        await sleep(0.5)
+        while True:
+            d,f = await self.q.get()
+            self.req = Future()
+            self.req_msg = d
+            super().write(d.bytes())
+            try:
+                res = await wait_for(self.req, 0.5)
+            except TimeoutError:
+                res = None
+            except NoData:
+                res = None
+            except BaseException as exc:
+                f.set_exception(exc)   
+                raise
+            finally:
+                self.req = None
+                self.req_msg = None
+            f.set_result(res)
+
+    def connection_made(self,transport):
+        super().connection_made(transport)
+        self.processor.jobs.add(self)
+
+    def connection_lost(self,exc):
+        super().connection_lost(exc)
+        self.processor.jobs.remove(self)
+
+    def msg_received(self,d):
+        r,self.req_msg = self.req_msg,None
+        if r is not None:
+            if r.nr == d.nr and r.a == d.a:
+                self.req.set_result(d)
+                if mon:
+                    mon.write(d)
+            else:
+                self.req.set_exception(NoData(r.nr))
+            return
+
+        self.processor.main.write(d)
+        if mon:
+            mon.write(d)
+
+    async def rwrite(self,d):
+        assert isinstance(d,Request)
+        f = Future()
+        await self.q.put((d,f))
+        try:
+            res = await f
+        except TimeoutError:
+            res = None
+        return res
+
+    def write(self,d):
+        if not isinstance(d,ReqReply):
+            d = ReqReply.build(d)
+        f = ensure_future(self.rwrite(d))
+        def _wrote(f):
+            try:
+                e = f.exception()
+            except CancelledError:
+                e = None
+            if e is not None:
+                print_exception(e.__class__,e,e.__traceback__)
+        f.add_done_callback(_wrote)
+    
+    def close(self):
+        self.t.cancel()
+        super().close()
+
+class Controller(_Conn):
+    s=0
+    def connection_made(self,transport):
+        super().connection_made(transport)
+        self.processor.main = self
+
+    def connection_lost(self,exc):
+        super().connection_lost(exc)
+        self.processor.main = None
+        self.processor.evt.set()
+
+    def msg_received(self,d):
+        if mon is not None:
+            mon.write(d)
+        if isinstance(d,Request):
+            node = self.processor.nodes.get(d.nr,None)
+            if node is not None:
+                r = node.reply(d)
+                if r is not None:
+                    self.write(r)
+                else:
+                    node.fetch(d)
+
+    def write(self,d):
+        if isinstance(d,Reply):
+            d = d.bytes(True)
+        else:
+            assert not isinstance(d,ReqReply)
+        super().write(d)
+
+class Console(_Conn):
     def __init__(self,processor):
         self.processor = processor
         processor.loop.add_reader(sys.stdin.fileno(), self.read_stdin)
-        processor.jobs.add(self)
-    def close(self):
-        pass
-    def write(self,d):
-        sys.stdout.write(d.decode('utf-8'))
-    def read_stdin(self):
-        r = sys.stdin.readline().strip() + '\r\n'
-        r = r.encode('utf-8')
-        if self.processor.main:
-            self.processor.main.write(r)
-        for x in self.processor.jobs:
-            if isinstance(x,Outer):
+        self.q = Queue()
+        self.work = ensure_future(self._worker())
+
+    async def _worker(self):
+        while True:
+            msg = await self.q.get()
+            node = self.processor.nodes[msg.nr]
+            if node.conn is None:
+                print("%d: unknown" % msg.nr)
                 continue
-            x.write(r)
+            r = await node.conn.rwrite(msg)
+            if r is None:
+                print("%d: no answer" % msg.nr)
+                continue
+            node.replies[msg.a]=msg.b
+
+    def close(self):
+        self.work.cancel()
+        pass
+
+    def write(self,d):
+        if isinstance(d,bytes):
+            d = d.decode('utf-8','replace').strip()
+        print(d)
+
+    def read_stdin(self):
+        r = sys.stdin.readline().strip()
+        if r == 'q':
+            for n in self.processor.nodes.values():
+                for k,v in n.replies.items():
+                    print(n.nr,k,v)
+            return
+        r = r.encode('utf-8','replace')+b'\r\n'
+        r = ReqReply.build(r)
+        if isinstance(r,Request): # send to a node
+            self.q.put_nowait(r)
+        else: # remember
+            n = self.processor.nodes[r.nr]
+            n.replies[r.a] = r.b
+        
+class Node(object):
+    nr = None
+    conn = None
+    replies = None
+    worker = None
+    q = None
+
+    def __init__(self,nr):
+        self.nr = nr
+        self.replies = dict()
+
+    async def _work(self):
+        while True:
+            m = await self.q.get()
+            if isinstance(m,Request) and m.a not in self.replies:
+                r = await self.conn.rwrite(m)
+                if r is None:
+                    print("No reply:",m)
+                    continue
+                self.replies[m.a]=r.b
+            else:
+                print("Unprocessed:",m)
+
+    async def presence(self, conn):
+        m = Request(self.nr, 2)
+        r = await conn.rwrite(m)
+        if r is None:
+            return
+        if self.conn is None:
+            self.conn = conn
+            self.q = Queue()
+            self.worker = ensure_future(self._work())
+        else:
+            assert self.conn is conn
+
+    def fetch(self,msg):
+        assert self.nr == msg.nr
+        if self.q is None:
+            return # premature
+        self.q.put_nowait(msg)
+
+    def reply(self,msg):
+        try:
+            return Reply(self.nr,msg.a,self.replies[msg.a])
+        except KeyError:
+            return None
+        else:
+            return r
+
+    def close(self):
+        self.worker.cancel()
 
 class Processor(object):
     def __init__(self, loop=None):
@@ -58,16 +298,25 @@ class Processor(object):
         self.jobs = set()
         self.main = None
         self.evt = Event(loop=loop)
+        self.nodes = {}
+
+        self.loop.add_signal_handler(signal.SIGINT,self._tilt)
+        self.loop.add_signal_handler(signal.SIGTERM,self._tilt)
+
+    def _tilt(self):
+        self.loop.remove_signal_handler(signal.SIGINT)
+        self.loop.remove_signal_handler(signal.SIGTERM)
+        self.loop.call_soon_threadsafe(self.evt.set)
 
     async def process(self, *args):
         assert args
-        io = None
+        global mon
 
-        first = True
+        C = Controller
         for arg in args:
             if arg == '-':
-                assert io is None
-                io = Outer(self)
+                assert not mon
+                mon = Console(self)
                 continue
             try:
                 host,port = arg.split(':',1)
@@ -77,11 +326,26 @@ class Processor(object):
             else:
                 port = int(port)
                 assert port > 0
-            c = await self.loop.create_connection(lambda: Conn(self,first), host,port)
-            first = False
+            c = await self.loop.create_connection(lambda: C(self), host,port)
+            C = Conn
+
+        for n in range(1,9):
+            self.nodes[n] = node = Node(n)
+            for c in self.jobs:
+                await node.presence(c)
+                if node.conn is not None:
+                    break
+            else:
+                del self.nodes[n]
+
+        print("Started: %d connections, %d nodes." % (len(self.jobs), len(self.nodes)))
         await self.evt.wait()
+        for j in self.nodes.values():
+            j.close()
         for j in self.jobs:
-            j.transport.close()
+            j.close()
+        if mon is not None:
+            mon.close()
 
 
 def main(*args):
