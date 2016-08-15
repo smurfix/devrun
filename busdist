@@ -81,6 +81,14 @@ class _Conn(Protocol):
     def close(self):
         self.transport.close()
 
+def _worked(f):
+    try:
+        e = f.exception()
+    except CancelledError:
+        e = None
+    if e is not None:
+        print_exception(e.__class__,e,e.__traceback__)
+
 class Conn(_Conn):
     t = None
     q = None
@@ -92,6 +100,7 @@ class Conn(_Conn):
         self.q = Queue()
         self.e = Event()
         self.t = ensure_future(self._work())
+        self.t.add_done_callback(_worked)
 
     async def _work(self):
         await sleep(0.5)
@@ -153,14 +162,7 @@ class Conn(_Conn):
         if not isinstance(d,ReqReply):
             d = ReqReply.build(d)
         f = ensure_future(self.rwrite(d))
-        def _wrote(f):
-            try:
-                e = f.exception()
-            except CancelledError:
-                e = None
-            if e is not None:
-                print_exception(e.__class__,e,e.__traceback__)
-        f.add_done_callback(_wrote)
+        f.add_done_callback(_worked)
     
     def close(self):
         self.t.cancel()
@@ -202,6 +204,7 @@ class Console(_Conn):
         processor.loop.add_reader(sys.stdin.fileno(), self.read_stdin)
         self.q = Queue()
         self.work = ensure_future(self._worker())
+        self.work.add_done_callback(_worked)
 
     async def _worker(self):
         while True:
@@ -247,21 +250,43 @@ class Node(object):
     worker = None
     q = None
 
-    def __init__(self,nr):
+    def __init__(self,processor,nr):
+        self.processor = processor
         self.nr = nr
         self.replies = dict()
+        self.sent = dict()
+        self.repeat = dict()
 
     async def _work(self):
         while True:
             m = await self.q.get()
-            if isinstance(m,Request) and m.a not in self.replies:
+            if isinstance(m,Request):
                 r = await self.conn.rwrite(m)
                 if r is None:
                     print("No reply:",m)
                     continue
-                self.replies[m.a]=r.b
+                if m.b is None:
+                    self.replies[m.a]=r.b
+                    t = self.repeat.pop(m.a,None)
+                    if t is not None:
+                        t.cancel()
+                else:
+                    if self.sent.get(m.a,'') != m.b:
+                        self.sent[m.a] = m.b
+                        self.replies = dict()
+                    if r.b:
+                        print("Content:",m,r)
             else:
                 print("Unprocessed:",m)
+
+    def _do_again(self,a):
+        del self.repeat[a]
+        self.q.put_nowait(Request(self.nr,a))
+
+    def do_again(self,a):
+        if a in self.repeat:
+            return
+        self.repeat[a] = self.processor.loop.call_later(5,self._do_again,a)
 
     async def presence(self, conn):
         m = Request(self.nr, 2)
@@ -272,6 +297,8 @@ class Node(object):
             self.conn = conn
             self.q = Queue()
             self.worker = ensure_future(self._work())
+            self.worker.add_done_callback(_worked)
+
         else:
             assert self.conn is conn
 
@@ -282,14 +309,21 @@ class Node(object):
         self.q.put_nowait(msg)
 
     def reply(self,msg):
+        if msg.b is not None:
+            self.q.put_nowait(msg)
+            return Reply(self.nr,msg.a)
+
         try:
-            return Reply(self.nr,msg.a,self.replies[msg.a])
+            r = Reply(self.nr,msg.a,self.replies[msg.a])
         except KeyError:
             return None
         else:
+            self.do_again(msg.a)
             return r
 
     def close(self):
+        for v in self.repeat.values():
+            v.cancel()
         self.worker.cancel()
 
 class Processor(object):
@@ -330,7 +364,7 @@ class Processor(object):
             C = Conn
 
         for n in range(1,9):
-            self.nodes[n] = node = Node(n)
+            self.nodes[n] = node = Node(self,n)
             for c in self.jobs:
                 await node.presence(c)
                 if node.conn is not None:
