@@ -185,11 +185,7 @@ class Controller(_Conn):
         if isinstance(d,Request):
             node = self.processor.nodes.get(d.nr,None)
             if node is not None:
-                r = node.reply(d)
-                if r is not None:
-                    self.write(r)
-                else:
-                    node.fetch(d)
+                node.control(d,self)
 
     def write(self,d):
         if isinstance(d,Reply):
@@ -302,6 +298,13 @@ class Node(object):
         else:
             assert self.conn is conn
 
+    def control(self,d,proc):
+        r = self.reply(d)
+        if r is not None:
+            proc.write(r)
+        else:
+            self.fetch(d)
+
     def fetch(self,msg):
         assert self.nr == msg.nr
         if self.q is None:
@@ -309,10 +312,9 @@ class Node(object):
         self.q.put_nowait(msg)
 
     def reply(self,msg):
-        if msg.b is not None:
+        if msg.b is not None or msg.a in {30,31,25,27,28,13,14,3}:
             self.q.put_nowait(msg)
             return Reply(self.nr,msg.a)
-
         try:
             r = Reply(self.nr,msg.a,self.replies[msg.a])
         except KeyError:
