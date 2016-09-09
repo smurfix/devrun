@@ -17,14 +17,18 @@ import asyncio
 import sys
 
 from evc.etcd.types import EvcDevice, EtcFloat
+from evc.typ import Verified
 
-class Device(EvcDevice):
+class Device(Verified,EvcDevice):
     """Test device for annoying people"""
     help = """\
 This is the FooTest device.
 It prints 'Foo' every second, or however often you set it to.
 """
     
+    def verify_interval(self, v):
+        if v <= 0:
+            raise ParamError(k,'must be greater than zero')
 
     async def run(self):
         try:

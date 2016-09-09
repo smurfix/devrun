@@ -16,3 +16,25 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 class BaseType:
 	"""Helper class for listing device types"""
 	help = None # multi-line help text
+
+class NotGiven:
+	pass
+
+class Verified:
+	"""\
+		Mix-in which supplies an async verify(**params) method.
+
+		The default implementation dispatches each value to verify_‹key› methods.
+		"""
+	_verify_required = ()
+
+	async def verify(self, type=NotGiven, **params):
+		if type is not NotGiven:
+			raise SyntaxError("You can't change a device's type.")
+		for k in self._verify_required:
+			if params.get(k,None) is None:
+				raise SyntaxError("Parameter ‹%s› is required." % (k,))
+		for k,v in params.items():
+			r = getattr(self,'verify_'+k)(v)
+			if r is not None:
+				await r
