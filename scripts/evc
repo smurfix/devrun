@@ -7,6 +7,18 @@ import argparse
 import sys
 
 from evc.cmd import parser,cmd
+from qbroker.util.async import Main
+
+class Run(Main):
+    def __init__(self,cmd,args):
+        super().__init__()
+        self.cmd = cmd
+        self.args = args
+    async def at_start(self):
+        try:
+            await self.cmd(*self.args)
+        finally:
+            self.stop()
 
 def main():
     p = parser()
@@ -22,8 +34,9 @@ def main():
     opt = p.parse_args()
     opt.loop = asyncio.get_event_loop()
     c = cmd[opt.mode](opt)
+    r = Run(c.run,opt.args)
     try:
-        opt.loop.run_until_complete(c.run(*opt.args))
+        r.run()
     except Exception as exc:
         if opt.verbose > 1:
             raise
