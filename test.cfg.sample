@@ -1,0 +1,15 @@
+config:
+  amqp:
+    server:
+      host: localhost
+      login: test
+      password: test
+      virtualhost: /test
+    handlers:
+      dead: 1
+  etcd:
+    host: localhost
+    port: 2379
+    root: /test/evc
+  evc:
+    prefix: test

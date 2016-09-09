@@ -1,0 +1,33 @@
+#!/usr/bin/python3
+
+## set up EVC stuff
+
+import asyncio
+import argparse
+import sys
+
+from evc.cmd import parser,cmd
+
+def main():
+    p = parser()
+    p.add_argument('mode', help='change what to do')
+    p.add_argument('args', nargs='*', help='(command-specific)')
+    if p.epilog is None: p.epilog = ""
+    p.epilog += """\
+
+%(prog)s help           -- list of commands
+%(prog)s help ‹command› -- help for this command
+"""
+
+    opt = p.parse_args()
+    opt.loop = asyncio.get_event_loop()
+    c = cmd[opt.mode](opt)
+    try:
+        opt.loop.run_until_complete(c.run(*opt.args))
+    except Exception as exc:
+        if opt.verbose > 1:
+            raise
+        print("%s: %s" % (type(exc).__name__,str(exc)), file=sys.stderr)
+
+if __name__ == '__main__':
+    main()
