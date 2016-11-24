@@ -2,12 +2,16 @@
 
 ## set up EVC stuff
 
+import qbroker; qbroker.setup()
 import asyncio
 import argparse
 import sys
 
 from evc.cmd import parser,cmd
 from qbroker.util.async import Main
+
+import logging
+logger = logging.getLogger(__name__)
 
 class Run(Main):
     def __init__(self,cmd,args):
