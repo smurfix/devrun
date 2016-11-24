@@ -39,6 +39,5 @@ It prints 'Foo' every second, or however often you set it to.
             print("Died with "+str(exc), file=sys.stderr)
             raise
 
-Device.register("interval", cls=EtcFloat, doc="Interval between 'foo' pings")
-    
+Device.register("config","interval", cls=EtcFloat, doc="Interval between 'foo' pings")
 
