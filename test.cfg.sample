@@ -11,7 +11,7 @@ config:
     host: localhost
     port: 2379
     root: /test/evc
-evc:
+devices:
   prefix: test
   test:
     what:

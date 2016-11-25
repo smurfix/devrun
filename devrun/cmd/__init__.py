@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
 ##
-## This file is part of evc, a comprehensive controller and monitor for
-## chargers of electric vehicles.
+## This file is part of devrun, a comprehensive controller and monitor for
+## various typed code.
 ##
-## evc is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
+## devrun is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
 ## it is licensed under the GPLv3. See the file `README.rst` for details,
 ## including optimistic statements by the author.
 ##
@@ -19,14 +19,14 @@ import argparse
 import os
 import qbroker
 
-from evc.util import import_string, load_cfg
+from devrun.util import import_string, load_cfg
 
 def parser(**kw):
     if 'formatter_class' not in kw:
         kw['formatter_class'] = argparse.RawDescriptionHelpFormatter
     res = argparse.ArgumentParser(**kw)
-    res.add_argument('-c', '--config', dest='config', default=os.environ.get('EVC_CONFIG','/etc/evc.cfg'),
-                        help='configuration file. Default: EVC_CONFIG or /etc/evc.cfg')
+    res.add_argument('-c', '--config', dest='config', default=os.environ.get('EVC_CONFIG','/etc/devrun.cfg'),
+                        help='configuration file. Default: EVC_CONFIG or /etc/devrun.cfg')
     res.add_argument('-v', '--verbose', dest='verbose', action='count', default=1,
                         help='increase chattiness')
     res.add_argument('-q', '--quiet', dest='verbose', action='store_const', const=0,
@@ -45,11 +45,13 @@ class BaseCommand:
         if getattr(self,'amqp',None) is None:
             self.amqp = await qbroker.make_conn
         
-    def run(self):
+    async def run(self):
         raise NotImplementedError("You need to override .run()")
+    async def stop(self):
+        pass
 
 class cmd:
     def __getitem__(self, name):
-        return import_string('evc.cmd.'+name+'.Command')
+        return import_string('devrun.cmd.'+name+'.Command')
 cmd = cmd()
 

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
 ##
-## This file is part of QBroker, an easy to use RPC and broadcast
-## client+server using AMQP.
+## This file is part of devrun, a comprehensive controller and monitor for
+## various typed code.
 ##
-## QBroker is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
+## devrun is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
 ## it is licensed under the GPLv3. See the file `README.rst` for details,
 ## including optimistic statements by the author.
 ##
@@ -85,7 +85,6 @@ setup(name='QBroker',
       ],
       zip_safe=True,
       cmdclass = {'test': PyTest},
-
 
       )
 

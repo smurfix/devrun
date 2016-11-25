@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
 ##
-## This file is part of evc, a comprehensive controller and monitor for
-## chargers of electric vehicles.
+## This file is part of devrun, a comprehensive controller and monitor for
+## various typed code.
 ##
-## evc is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
+## devrun is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
 ## it is licensed under the GPLv3. See the file `README.rst` for details,
 ## including optimistic statements by the author.
 ##

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
 ##
-## This file is part of evc, a comprehensive controller and monitor for
-## chargers of electric vehicles.
+## This file is part of devrun, a comprehensive controller and monitor for
+## various typed code.
 ##
-## evc is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
+## devrun is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
 ## it is licensed under the GPLv3. See the file `README.rst` for details,
 ## including optimistic statements by the author.
 ##
@@ -14,9 +14,9 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ##BP
 
 from . import BaseCommand
-from evc.util import objects, import_string
-from evc.typ import BaseType
-from evc.etcd.types import EvcDevice
+from devrun.util import objects, import_string
+from devrun.typ import BaseType
+from devrun.etcd.types import EvcDevice
 
 class Command(BaseCommand):
     "Basic command help"
@@ -31,9 +31,9 @@ help ‹command›
 
     async def run(self, *args):
         if not args:
-            for k in objects('evc.cmd', BaseCommand):
+            for k in objects('devrun.cmd', BaseCommand):
                 print("%s %s" % (k.__module__.rsplit('.',1)[1],
                     k.__doc__.split('\n',1)[0] if k.__doc__ else ''))
         else:
-            k = import_string('evc.cmd.%s.Command' % ('.'.join(args),))
+            k = import_string('devrun.cmd.%s.Command' % ('.'.join(args),))
             print(k.help)

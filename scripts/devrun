@@ -6,8 +6,9 @@ import qbroker; qbroker.setup()
 import asyncio
 import argparse
 import sys
+from traceback import print_exc
 
-from evc.cmd import parser,cmd
+from devrun.cmd import parser,cmd
 from qbroker.util.async import Main
 
 import logging
@@ -20,6 +21,16 @@ class Run(Main):
         self.args = args
     async def at_start(self):
         self.job = asyncio.ensure_future(self.cmd.run(*self.args))
+        def done(j):
+            self.stop()
+            try:
+                j.result()
+            except asyncio.CancelledError:
+                pass
+            except Exception as exc:
+                print_exc()
+
+        self.job.add_done_callback(done)
         self.add_cleanup(self.job.cancel)
         self.add_cleanup(self.cmd.stop)
 

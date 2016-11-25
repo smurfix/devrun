@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
 ##
-## This file is part of evc, a comprehensive controller and monitor for
-## chargers of electric vehicles.
+## This file is part of devrun, a comprehensive controller and monitor for
+## various typed code.
 ##
-## evc is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
+## devrun is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
 ## it is licensed under the GPLv3. See the file `README.rst` for details,
 ## including optimistic statements by the author.
 ##
@@ -18,11 +18,12 @@ This module implements a basic demo+test device which doesn't actually do
 much, if anything.
 """
 
-from evc.typ import BaseType
+from devrun.typ import BaseType
+from devrun.device import BaseDevice # as _BaseDevice
 
 class Type(BaseType):
     "Test. Do not use in production."
     help = "I am a test type. My devices do not do anything."
 
-class BaseDevice:
-    pass
+#class BaseDevice(_BaseDevice):
+#    pass

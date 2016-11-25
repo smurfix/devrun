@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
 ##
-## This file is part of evc, a comprehensive controller and monitor for
-## chargers of electric vehicles.
+## This file is part of devrun, a comprehensive controller and monitor for
+## various typed code.
 ##
-## evc is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
+## devrun is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
 ## it is licensed under the GPLv3. See the file `README.rst` for details,
 ## including optimistic statements by the author.
 ##
@@ -16,15 +16,13 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 import asyncio
 import sys
 
-#from evc.etcd.types import EvcDevice, EtcFloat
-#from evc.typ import Verified
-from evc.device import BaseDevice
+from . import BaseDevice
 
 class Device(BaseDevice):
     """Test device for annoying people"""
     help = """\
-This is the FooTest device.
-It prints 'Foo' every second, or however often you set it to.
+This is the Ping device.
+It prints 'Ping from ‹name›' every second, or however often you set it to.
 """
     
     def verify_interval(self, v):
@@ -34,7 +32,7 @@ It prints 'Foo' every second, or however often you set it to.
     async def run(self):
         while True:
             await asyncio.sleep(self.loc.get('config',{}).get('interval',1), loop=self.cmd.loop)
-            print("Ping from foo."+self.name)
+            print("Ping from "+self.name)
 
-#Device.register("config","interval", cls=EtcFloat, doc="Interval between 'foo' pings")
+Device.register("config","interval", cls=float, doc="Interval between 'foo' pings")
 

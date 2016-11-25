@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
 ##
-## This file is part of evc, a comprehensive controller and monitor for
-## chargers of electric vehicles.
+## This file is part of devrun, a comprehensive controller and monitor for
+## various typed code.
 ##
-## evc is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
+## devrun is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
 ## it is licensed under the GPLv3. See the file `README.rst` for details,
 ## including optimistic statements by the author.
 ##
@@ -19,9 +19,9 @@ from traceback import print_exc
 from collections.abc import Mapping
 
 from . import BaseCommand
-from evc.util import objects, import_string
-from evc.typ import BaseType
-from evc.etcd.types import EvcDevice
+from devrun.util import objects, import_string
+from devrun.typ import BaseType
+from devrun.etcd.types import EvcDevice
 
 class Command(BaseCommand):
     "Run the whole system"
@@ -51,8 +51,7 @@ run
                     print_exc(exc)
                 self.endit.set()
 
-        evc = self.cfg['evc']
-        for cls,devs in evc.items():
+        for cls,devs in self.cfg['devices'].items():
             if not isinstance(devs,Mapping):
                 continue
             g = self.cls[cls] = {}
@@ -61,7 +60,7 @@ run
                     break
                 if not isinstance(dev,Mapping):
                     continue
-                d = import_string('evc.typ.%s.%s.Device' % (cls,dev['type']))
+                d = import_string('devrun.typ.%s.%s.Device' % (cls,dev['type']))
                 d = d(name,self,dev)
                 j = asyncio.ensure_future(d.run())
                 j.add_done_callback(ended)

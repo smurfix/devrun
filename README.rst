@@ -1,32 +1,16 @@
-EVC -- Electric Vehicle Charger
-===============================
+DevRun -- run code for devices
+==============================
 
-This program (and associated module) interfaces frontends and backends for
-charging electric vehicles.
+This program controls running a variety of devices,
+described by a common configuration file.
 
-Supported frontends:
+DevRun is intended to be a quick-and-dirty framework for managing a system
+of devices. The author uses it for controlling "dumb" chargers for electric
+cars, integrating the charger, power meter, web frontend, authorisation
+management, accounting, and other components. DevRun reads the global and
+device configuration, starts asynchronous jobs for all instances (ensuring
+correct startup order), and provides a common interface for messaging and
+object storage.
 
-* command-line interface, via AMQP messages
-
-* CCMS charge manager, ABL Sursum
-
-* built-in charge manager
-
-Supported backends:
-
-* dummy charger, controlled via AMQP (for testing)
-
-* EVCC: charge controller, ABL Sursum (autonomous mode)
-
-* EVCC: charge controller, ABL Sursum (manual mode)
-
-Supported meters:
-
-* SDM630, via Modbus
-
-Supported accounting protocols:
-
-* Plugsurfing
-
-* AMQP messaging
+DevRun requires Python 3.5. It uses asyncio natively.
 

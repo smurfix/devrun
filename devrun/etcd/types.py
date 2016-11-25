@@ -1,26 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
 ##
-##  This file is part of Evc, the Master of all Things.
+## This file is part of devrun, a comprehensive controller and monitor for
+## various typed code.
 ##
-##  Evc is Copyright © 2007-2016 by Matthias Urlichs <matthias@urlichs.de>,
-##  it is licensed under the GPLv3. See the file `README.rst` for details,
-##  including optimistic statements by the author.
+## devrun is Copyright © 2016 by Matthias Urlichs <matthias@urlichs.de>,
+## it is licensed under the GPLv3. See the file `README.rst` for details,
+## including optimistic statements by the author.
 ##
-##  This program is free software: you can redistribute it and/or modify
-##  it under the terms of the GNU General Public License as published by
-##  the Free Software Foundation, either version 3 of the License, or
-##  (at your option) any later version.
-##
-##  This program is distributed in the hope that it will be useful,
-##  but WITHOUT ANY WARRANTY; without even the implied warranty of
-##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##  GNU General Public License (included; see the file LICENSE)
-##  for more details.
-##
-##  This header is auto-generated and may self-destruct at any time,
-##  courtesy of "make update". The original is in ‘scripts/_boilerplate.py’.
-##  Thus, do not remove the next line, or insert any blank lines above.
+## This paragraph is auto-generated and may self-destruct at any time,
+## courtesy of "make update". The original is in ‘utils/_boilerplate.py’.
+## Thus, please do not remove the next line, or insert any blank lines.
 ##BP
 
 import asyncio
@@ -124,7 +114,7 @@ class EvcConfig(recEtcDir,EtcDir):
 class EvcDevice(MyRun, recEtcDir,EtcDir):
 	"""\
 		Directory for /‹subsys›/‹name›.
-		Will lookup the class to use by way of evc.typ.‹subsys›.‹type›.Device,
+		Will lookup the class to use by way of devrun.typ.‹subsys›.‹type›.Device,
 		where ‹type› is the content of the …/type entry."""
 
 	@classmethod
@@ -132,7 +122,7 @@ class EvcDevice(MyRun, recEtcDir,EtcDir):
 		if recursive is None:
 			raise ReloadData
 		import pdb;pdb.set_trace()
-		m = 'evc.typ.%s.%s.Device' % (self.parent.name,pre['type'])
+		m = 'devrun.typ.%s.%s.Device' % (self.parent.name,pre['type'])
 	
 	@classmethod
 	def check_new_params(self, **params):

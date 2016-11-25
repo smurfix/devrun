@@ -1,24 +1,24 @@
-==============
-Setting up EVC
-==============
+=================
+Setting up DevRun
+=================
 
-First, deploy RabbitMQ and etcd.
-
-Create a configruation file for ``evc``:
+Create a configuration file:
 
     config:
-      etcd:
-        host: localhost
-        port: 2379
-        root: /evc
       amqp:
         server:
           host: localhost
           login: guest
           password: guest
           virtualhost: /moat
-
-Run ``evc-setup init``.
+      … whatever other global configuration you need
+    devices:
+      test:
+        pling:
+          type: ping
+          config:
+            interval: 1.5
+      
 
 -----------
 Basic usage
@@ -34,9 +34,9 @@ type ‹class›
 
 Lists the available types in a class. For instance:
 
-    type meter
+    type test
 
-will show what kind of meters are available.
+will show what kind of test devices are available.
 
 type ‹class› ‹kind›
 ===================
@@ -44,7 +44,7 @@ type ‹class› ‹kind›
 shows detailed information about this kind of device, including the parameters you can
 set for it.
 
-    type meter sdm630
+    type test ping
 
 will tell you that it requires a ModBus-TCP gateway and a device address:
 
