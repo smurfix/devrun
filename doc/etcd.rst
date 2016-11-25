@@ -25,24 +25,33 @@ typical (albeit incomplete) data structure would be
             m1
                 config
                     type: SDM630
-                    bus: host1:502
+                    bus: mb1
                     bus_addr: 1
         control
             master
                 type: builtin
                 config
                     xxx
-        conn
+        bus
             s123
-                type: rs485
+                type: evclink
                 config
                     remote: host2:50485
                     local: /dev/rs485-1
+            mb1
+                type: modbus
+                config
+                    host: host1:502
         reader
             r1
                 type: TODO
                 config
                     charger: s1
+        power
+            p1
+                type: limit
+                config
+                    A_max: 100
         front
             plugsurfing
                 type: plugsurfing

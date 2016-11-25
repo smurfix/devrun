@@ -19,10 +19,9 @@ class Run(Main):
         self.cmd = cmd
         self.args = args
     async def at_start(self):
-        try:
-            await self.cmd(*self.args)
-        finally:
-            self.stop()
+        self.job = asyncio.ensure_future(self.cmd.run(*self.args))
+        self.add_cleanup(self.job.cancel)
+        self.add_cleanup(self.cmd.stop)
 
 def main():
     p = parser()
@@ -38,9 +37,11 @@ def main():
     opt = p.parse_args()
     opt.loop = asyncio.get_event_loop()
     c = cmd[opt.mode](opt)
-    r = Run(c.run,opt.args)
+    r = Run(c,opt.args)
     try:
         r.run()
+    except asyncio.CancelledError:
+        pass
     except Exception as exc:
         if opt.verbose > 1:
             raise

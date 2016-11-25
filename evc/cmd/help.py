@@ -34,9 +34,6 @@ help ‹command›
             for k in objects('evc.cmd', BaseCommand):
                 print("%s %s" % (k.__module__.rsplit('.',1)[1],
                     k.__doc__.split('\n',1)[0] if k.__doc__ else ''))
-        elif len(args) == 1:
-            k = import_string('evc.cmd.%s.Command' % (args[0],))
-            print(k.help)
         else:
-            print("Usage: help [‹command›]", file=sys.stderr)
-            return 1
+            k = import_string('evc.cmd.%s.Command' % ('.'.join(args),))
+            print(k.help)

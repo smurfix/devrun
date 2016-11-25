@@ -62,13 +62,13 @@ type ‹group› ‹type›
             ks_nlen = 6
             ks_tlen = 10
 
-            for n,v in k._types.items():
+            for n,v in k._types.step('config').items():
                 t = v[0].__name__.replace('Etc','').lower()
                 ks_nlen = max(ks_nlen,len(n))
                 ks_tlen = max(ks_tlen,len(t))
                 ks.append((n,t,v.doc or ''))
             if ks:
-                print('\nKnown parameters:\n')
+                print('\nKnown config parameters:\n')
                 f = '%%-%ds %%-%ds %%s' % (ks_nlen,ks_tlen)
             
                 for n,v,d in sorted(ks):

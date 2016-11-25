@@ -11,5 +11,10 @@ config:
     host: localhost
     port: 2379
     root: /test/evc
-  evc:
-    prefix: test
+evc:
+  prefix: test
+  test:
+    what:
+      type: foo
+      config:
+        interval: 0.2

@@ -17,6 +17,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import argparse
 import os
+import qbroker
 
 from evc.util import import_string, load_cfg
 
@@ -37,8 +38,12 @@ class BaseCommand:
     cfg = None
     def __init__(self, opt):
         self.opt = opt
-        if self.cfg is None:
+        if getattr(self,'cfg',None) is None:
             self.cfg = load_cfg(opt.config)
+
+    async def setup(self):
+        if getattr(self,'amqp',None) is None:
+            self.amqp = await qbroker.make_conn
         
     def run(self):
         raise NotImplementedError("You need to override .run()")

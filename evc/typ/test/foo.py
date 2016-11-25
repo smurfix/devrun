@@ -16,10 +16,11 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 import asyncio
 import sys
 
-from evc.etcd.types import EvcDevice, EtcFloat
-from evc.typ import Verified
+#from evc.etcd.types import EvcDevice, EtcFloat
+#from evc.typ import Verified
+from evc.device import BaseDevice
 
-class Device(Verified,EvcDevice):
+class Device(BaseDevice):
     """Test device for annoying people"""
     help = """\
 This is the FooTest device.
@@ -31,13 +32,9 @@ It prints 'Foo' every second, or however often you set it to.
             raise ParamError(k,'must be greater than zero')
 
     async def run(self):
-        try:
-            while True:
-                asyncio.sleep(self.get('interval',1), loop=self._loop)
-                print("Ping from foo."+self.name)
-        except Exception as exc:
-            print("Died with "+str(exc), file=sys.stderr)
-            raise
+        while True:
+            await asyncio.sleep(self.loc.get('config',{}).get('interval',1), loop=self.cmd.loop)
+            print("Ping from foo."+self.name)
 
-Device.register("config","interval", cls=EtcFloat, doc="Interval between 'foo' pings")
+#Device.register("config","interval", cls=EtcFloat, doc="Interval between 'foo' pings")
 
