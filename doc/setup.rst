@@ -54,22 +54,15 @@ will tell you that it requires a ModBus-TCP gateway and a device address:
     bus_addr: ‹int›             device address on that bus
     phase: ‹int›                phase to measure. 0:all of them
 
-add ‹class› ‹kind› ‹name› ‹param›=‹value›…
-==========================================
+run
+===
 
-adds the named device to the system. An error message is emitted if a
-parameter is missing, has the wrong type, or whatever.
+Starts up all devices.
 
-upd ‹class› ‹kind› ‹name› ‹param›=‹value›…
-==========================================
+Any uncaught error will result in a stack trace and a (clean) termination of the whole stack.
 
-Changes the given parameters. ``‹param=›`` deletes a value.
-An error message is emitted if a parameter is missing, has the wrong type,
-or whatever.
+help
+====
 
-del ‹class› ‹kind› ‹name›
-=========================
-
-removes the named device from the system. **Warning**: interesting results
-may occur if the device is used by other devices in the system.
+Print basic (sub)command usage.
 
