@@ -12,7 +12,6 @@ config:
     port: 2379
     root: /test/evc
 devices:
-  prefix: test
   test:
     what:
       type: foo
