@@ -17,54 +17,13 @@ import asyncio
 import sys
 
 from . import BaseDevice
+from devrun.support.abl import ReqReply,Request,Reply,RT
 
 import logging
 logger = logging.getLogger(__name__)
 
 class NoData(RuntimeError):
     pass
-
-class ReqReply:
-    """encapsulate a request/reply exchanged while talking to the evc"""
-    lead = None
-    def __init__(self, nr,a,b=None, *, callback=None):
-        self.nr = nr
-        self.a = a
-        self.b = b
-
-    def __str__(self):
-        return self.bytes().decode('ascii').strip()
-
-    @property
-    def bytes(self):
-        r = "%c%d %02d" % (self.lead,self.nr,self.a)
-        if self.b is not None:
-            r += ' ' + self.b
-        r += '\r\n'
-        return r.encode('ascii')
-
-    @staticmethod
-    def build(s,callback=None):
-        s = s.decode('ascii')
-        if s[0] == Request.lead:
-            c = Request
-        elif s[0] == Reply.lead:
-            c = Reply
-        else:
-            raise RuntimeError('Unknown input: '+repr(s))
-        s = s[1:].strip('\n').strip('\r').strip(' ').split(' ')
-        s[0] = int(s[0])
-        s[1] = int(s[1])
-
-        return c(*s)
-
-class Request(ReqReply):
-    "Encapsulates a request"
-    lead = '!'
-class Reply(ReqReply):
-    "Encapsulates a reply"
-    lead = '>'
-
 
 class EvcProtocol(asyncio.Protocol):
     buf = ''
@@ -91,7 +50,7 @@ class EvcProtocol(asyncio.Protocol):
     def send(self,req):
         logger.debug("send: %s",str(req))
         self.transport.write(req.bytes)
-        
+
     def connection_lost(self, exc):
         self.parent.stop()
 
@@ -196,6 +155,13 @@ as it exits when the client terminates.
             res = None
         return res
 
+	async def query(adr,func,b=None):
+		req = Request(adr,func,b)
+		res = await self.do_request(req)
+		try:
+			return int(res.b)
+		except TypeError:
+			return res.b
 
 Device.register("config","host", cls=str, doc="Host[:port] to connect to, or /dev/serial")
 
