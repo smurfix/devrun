@@ -24,6 +24,7 @@ chargers for electric cars would be
                     type: SDM630
                     bus: mb1
                     address: 1
+                    power: p1
         control
             master
                 type: builtin
@@ -60,4 +61,31 @@ chargers for electric cars would be
                 type: manual
                 config
                     chargers: *
+
+* charger
+
+  A back-end responsible for one charging station. May be equipped with a
+  beeper and/or some indicator lights.
+
+* meter
+
+  Measures one charger's energy consumption and current(s).
+
+* bus
+
+  A connection to a physical bus which controls one or more chargers by way
+  of a local bus interface. Not used for chargers with a TCP/IP interface.
+
+* control
+
+  Responsible for distributing power to charging stations.
+
+* front
+
+  Front-end for one or more controllers.
+
+* reader
+
+  Card reader, associated with one or more chargers. A reader may be
+  equipped with a display, beeper, and/or indicator lights.
 
