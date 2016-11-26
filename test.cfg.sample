@@ -14,6 +14,6 @@ config:
 devices:
   test:
     what:
-      type: foo
+      type: ping
       config:
         interval: 0.2
