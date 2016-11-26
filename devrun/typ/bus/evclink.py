@@ -18,6 +18,9 @@ import sys
 
 from . import BaseDevice
 
+import logging
+logger = logging.getLogger(__name__)
+
 class NoData(RuntimeError):
     pass
 
@@ -74,17 +77,19 @@ class EvcProtocol(asyncio.Protocol):
         self.parent.protocol = self
 
     def data_received(self, data):
+        logger.debug("raw recv: %s",repr(data))
         self.buf += data
         while True:
             i = self.buf.index(b'\n')
             if i < 0:
                 break
             data,self.buf = self.buf[0:i],self.buf[i:]
-            self.parent.msg_received(ReqReply(data))
-        if b'\n' in data:
-            self.transport.close()
+            data = ReqReply(data)
+            logger.debug("recv: %s",data)
+            self.parent.msg_received(data)
 
     def send(self,req):
+        logger.debug("send: %s",str(req))
         self.transport.write(req.bytes)
         
     def connection_lost(self, exc):
@@ -108,6 +113,7 @@ as it exits when the client terminates.
     proto = None
 
     async def run(self):
+        logger.info("Start: %s",self.name)
         self.q = asyncio.Queue()
 
         try:
@@ -134,6 +140,7 @@ as it exits when the client terminates.
         await asyncio.sleep(0.5)
         self.proto.transport.write(b'XXX\r\n')
         await asyncio.sleep(0.5)
+        logger.info("Running: %s",self.name)
 
         while True:
             d,f = await self.q.get()
@@ -141,7 +148,7 @@ as it exits when the client terminates.
                 break
             self.req = Future()
             self.req_msg = d
-            super().write(d.bytes())
+            self.proto.send(d)
             try:
                 res = await wait_for(self.req, 0.5)
             except Exception as exc:
@@ -154,9 +161,12 @@ as it exits when the client terminates.
             finally:
                 self.req = None
                 self.req_msg = None
+
+        logger.info("Stop: %s",self.name)
         self.proto.transport.close()
 
     def stop(self):
+        logger.info("Stopping: %s",self.name)
         self.q.put((None,None))
 
     def msg_received(self,d):
