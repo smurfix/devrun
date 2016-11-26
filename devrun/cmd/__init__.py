@@ -20,6 +20,7 @@ import os
 import qbroker
 
 from devrun.util import import_string, load_cfg
+from devrun.device import Registry
 
 def parser(**kw):
     if 'formatter_class' not in kw:
@@ -38,6 +39,7 @@ class BaseCommand:
     cfg = None
     def __init__(self, opt):
         self.opt = opt
+        self.reg = Registry()
         if getattr(self,'cfg',None) is None:
             self.cfg = load_cfg(opt.config)
 
