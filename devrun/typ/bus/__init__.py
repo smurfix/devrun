@@ -14,8 +14,9 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ##BP
 
 """\
-This module implements a basic demo+test device which doesn't actually do
-much, if anything.
+This module implements all kind of bus-style connections.
+
+Atypically, different devices here do not have the same API.
 """
 
 from devrun.typ import BaseType
