@@ -14,6 +14,8 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ## Thus, please do not remove the next line, or insert any blank lines.
 ##BP
 
+import asyncio
+
 class BaseDevice(object):
     _reg = {}
 
@@ -49,3 +51,85 @@ class BaseDevice(object):
                 else:
                     yield p+(a,),cls,b['doc']
         return get((),r)
+
+class NotYetError(RuntimeError):
+    pass
+
+class Registry:
+    """
+        Store links to devices which may not exist yet.
+
+        Usage:
+            Register:
+                reg.type[name] = dev
+
+            Retrieve:
+                dev = await reg.type.get(name)
+
+            Trigger timeouts:
+                reg.done()
+        
+        """
+    def __init__(self):
+        self.reg = {}
+
+    def __getattr__(self,k):
+        if k.startswith('_'):
+            return super().__getattr__(k)
+        try:
+            return self.reg[k]
+        except KeyError:
+            res = self.reg[k] = _SubReg(k)
+            return res
+
+    def __iter__(self):
+        for v in self.reg.values():
+            yield from v
+
+    def done(self):
+        """Triggers a timeout error on all outstanding futures.
+            Returns the number of aborts."""
+        t = None
+        n = 0
+        for f in self:
+            if isinstance(f,asyncio.Future):
+                if t is None:
+                    t = asyncio.TimeoutError()
+                f.set_exception(t)
+                n += 1
+        return n
+        
+class _SubReg:
+    def __init__(self,name):
+        self.name = name
+        self.reg = {}
+
+    def __getitem__(self,k):
+        dev = self.reg[k]
+        if isinstance(dev,asyncio.Future):
+            return NotYetError(self.name,k)
+
+    def __iter__(self):
+        for v in self.reg.values():
+            yield v
+
+    def __setitem__(self,k,v):
+        f = self.reg.get(k,None)
+        if f is None:
+            pass
+        elif isinstance(f,asyncio.Future):
+            f.set_result(v)
+        else:
+            raise RuntimeError('already known',self.name,k,f)
+        self.reg[k]=v
+
+    async def get(self,k):
+        f = self.reg.get(k,None)
+        if f is None:
+            f = self.reg[k] = asyncio.Future()
+        elif isinstance(f,asyncio.Future):
+            pass
+        else:
+            return f
+        return (await f)
+

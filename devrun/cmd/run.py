@@ -39,16 +39,12 @@ run
         self.endit = asyncio.Event()
         def ended(f):
             try:
-                exc = f.exception()
+                exc = f.result()
             except asyncio.CancelledError:
                 exc = None
-            except Exception as e:
-                exc = e
-            except BaseException:
-                exc = None
+            except Exception:
+                print_exc()
             finally:
-                if exc is not None:
-                    print_exc(exc)
                 self.endit.set()
 
         for cls,devs in self.cfg['devices'].items():
@@ -80,5 +76,5 @@ run
                 except asyncio.CancelledError:
                     pass
                 except Exception as e:
-                    print_exception(e.__class__,e,e.__traceback__)
+                    print_exc()
 

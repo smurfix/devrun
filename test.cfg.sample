@@ -14,6 +14,21 @@ config:
 devices:
   test:
     what:
-      type: foo
+      type: ping
       config:
         interval: 0.2
+    one:
+      type: pling
+      config:
+        delay: 1
+        want: two
+    two:
+      type: pling
+      config:
+        delay: 2
+    three:
+      type: pling
+      config:
+        delay: 3
+        want: two
+
