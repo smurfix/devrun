@@ -25,10 +25,6 @@ This is the Ping device.
 It prints 'Ping from ‹name›' every second, or however often you set it to.
 """
     
-    def verify_interval(self, v):
-        if v <= 0:
-            raise ParamError(k,'must be greater than zero')
-
     async def run(self):
         while True:
             await asyncio.sleep(self.loc.get('config',{}).get('interval',1), loop=self.cmd.loop)
