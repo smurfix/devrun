@@ -104,7 +104,7 @@ class RT(rev):
 
     # device is unavailable
     enter_Ax = 30
-    leave_Ax = 30
+    leave_Ax = 31
 
     reset_b = 1111
 
