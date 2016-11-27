@@ -17,7 +17,7 @@ import asyncio
 import sys
 
 from . import BaseDevice
-from devrun.support.abl import RT,Request,Reply
+from devrun.support.abl import Request,Reply, fADC,RM,RT
 
 class Device(BaseDevice):
     """ABL Sursum chargers"""
@@ -33,36 +33,42 @@ This module interfaces to an ABL Sursum-style charger.
 		mode = cfg.get('mode','auto')
 		if mode == "manual":
 			await self.run_manual(cfg)
+			return
+
 		if mode != "auto":
 			raise ConfigError("Mode needs to be 'auto' or 'manual'")
 
 		### auto mode
-		self.bus = cfg['bus']
+		self.bus = self.cmd.reg.bus.get(cfg['bus'])
+		self.power = self.cmd.reg.bus.get(cfg['power'])
+		self.meter = self.cmd.reg.bus.get(cfg['meter'])
 		self.adr = cfg['address']
-		mode = await self.query(RT.state)
-		if mode == RM.manual:
+		self.A_max = cfg.get('A_max',32)
 
 		while True:
 			mode = await self.query(RT.state)
 			if mode == RM.manual:
-				raise RuntimeError("mode is set to manual??")
-			
+				await self.query(RT.set_auto)
+			if mode > RT.firstErr:
+				raise RuntimeError("Charger %s: error %s", self.name,RT[mode])
+			avail = self.power.available(self.name)
+			limited = await self.query(RT.break)
+			if limited:
+				await self.query(RT.clear_break)
+				if avail >= 6:
+					await self.query(RT.set_pwm, avail*fADC)
+			else:
+				if avail < 6:
+					await self.query(RT.set_break)
 
-		bus = await self.cmd.reg.bus.get(w)
-		cur = await bus.query
-            n = 1
-            while True:
-                await dev.q.put((self.name,n))
-                print("Pling sent ",n)
-                await asyncio.sleep(cfg.get('interval',1), loop=self.cmd.loop)
-                n += 1
-        else:
-            self.q = asyncio.Queue(cfg.get('qlen',5))
-            self.cmd.reg.test[self.name] = self
-            while True:
-                r = await self.q.get()
-                print("Pling got ",r)
-                await asyncio.sleep(cfg.get('interval',1), loop=self.cmd.loop)
+
+			mode = await self.query(RT.state)
+			if mode == RM.manual:
+				raise RuntimeError("mode is set to manual??")
+
+			
+	async def run_manual(self):
+		raise NotImplementedError("Don't know how to do it manually yet")
 
 Device.register("config","mode", cls=str, doc="Operating mode (auto or
 manual)")
