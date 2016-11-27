@@ -31,7 +31,7 @@ This is a link to Modbus.
 You can connect to a local serial interface,
 or to a remote modbus gateway.
 """
-    
+
     proto = None
 
     async def run(self):

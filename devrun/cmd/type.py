@@ -26,7 +26,7 @@ class Command(BaseCommand):
     help = """\
 type
     -- list of groups
-type ‹group› 
+type ‹group›
     -- group's description; list types within that group
 type ‹group› ‹type›
     -- type's description; list of parameters for that type
@@ -71,7 +71,7 @@ type ‹group› ‹type›
             if ks:
                 print('\nKnown config parameters:\n')
                 f = '%%-%ds %%-%ds %%s' % (ks_nlen,ks_tlen)
-            
+
                 for n,v,d in sorted(ks):
                     print(f % (n,v,d))
             else:

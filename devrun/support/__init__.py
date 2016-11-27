@@ -14,26 +14,26 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ##BP
 
 class rev:
-	"""\
-		Add a reverse-lookup via dict.
+    """\
+        Add a reverse-lookup via dict.
 
-		Usage:
+        Usage:
 
-			>>> class X(rev):
-			...		A=12
-			>>> X.A
-			12
-			>>> X[12]
-			'A'
+            >>> class X(rev):
+            ...        A=12
+            >>> X.A
+            12
+            >>> X[12]
+            'A'
 
-	"""
-	_items = None
-	@classmethod
-	def __getitem__(cls,x):
-		if cls._items is None:
-			cls._items = {}
-			for k,v in vars(cls).items():
-				if not k.startswith('_'):
-					cls._items[v] = k
-		return cls._items[x]
+    """
+    _items = None
+    @classmethod
+    def __getitem__(cls,x):
+        if cls._items is None:
+            cls._items = {}
+            for k,v in vars(cls).items():
+                if not k.startswith('_'):
+                    cls._items[v] = k
+        return cls._items[x]
 

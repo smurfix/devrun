@@ -14,9 +14,9 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ##BP
 
 class BaseType:
-	"""Helper class for listing device types"""
-	help = None # multi-line help text
+    """Helper class for listing device types"""
+    help = None # multi-line help text
 
 class NotGiven:
-	pass
+    pass
 

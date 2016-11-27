@@ -19,23 +19,23 @@ __VERSION__ = (0,1,0)
 import asyncio
 
 def setup(_loop=None):
-	global loop
-	if loop is None:
-		loop = _loop or asyncio.get_event_loop()
-	elif _loop is not None:
-		assert loop is _loop
+    global loop
+    if loop is None:
+        loop = _loop or asyncio.get_event_loop()
+    elif _loop is not None:
+        assert loop is _loop
 
 loop = None # set by setup()
 
 async def get_amqp(cfg, loop=None):
-	import qbroker
-	qbroker.setup()
-	res = await qbroker.make_unit(loop=loop, **cfg)
-	return res
+    import qbroker
+    qbroker.setup()
+    res = await qbroker.make_unit(loop=loop, **cfg)
+    return res
 
 async def get_etcd(cfg, loop=None):
-	from etcd_tree.etcd import EtcClient
-	res = EtcClient(**cfg['etcd'])
-	await res.start()
-	return res
+    from etcd_tree.etcd import EtcClient
+    res = EtcClient(**cfg['etcd'])
+    await res.start()
+    return res
 

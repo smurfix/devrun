@@ -68,7 +68,7 @@ or to a remote interface by way of a "socat" command or similar:
 Be sure to auto-restart this command,
 as it exits when the client terminates.
 """
-    
+
     proto = None
 
     async def run(self):
@@ -111,9 +111,9 @@ as it exits when the client terminates.
             try:
                 res = await wait_for(self.req, 0.5)
             except Exception as exc:
-                f.set_exception(exc)   
+                f.set_exception(exc)
             except BaseException as exc:
-                f.set_exception(exc)   
+                f.set_exception(exc)
                 raise
             else:
                 f.set_result(res)
@@ -155,13 +155,13 @@ as it exits when the client terminates.
             res = None
         return res
 
-	async def query(adr,func,b=None):
-		req = Request(adr,func,b)
-		res = await self.do_request(req)
-		try:
-			return int(res.b)
-		except TypeError:
-			return res.b
+    async def query(adr,func,b=None):
+        req = Request(adr,func,b)
+        res = await self.do_request(req)
+        try:
+            return int(res.b)
+        except TypeError:
+            return res.b
 
 Device.register("config","host", cls=str, doc="Host[:port] to connect to, or /dev/serial")
 

@@ -68,7 +68,7 @@ class Registry:
 
             Trigger timeouts:
                 reg.done()
-        
+
         """
     def __init__(self):
         self.reg = {}
@@ -98,7 +98,7 @@ class Registry:
                 f.set_exception(t)
                 n += 1
         return n
-        
+
 class _SubReg:
     def __init__(self,name):
         self.name = name

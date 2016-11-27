@@ -25,7 +25,7 @@ class Command(BaseCommand):
     help = """\
 help
     -- list of commands
-help ‹command› 
+help ‹command›
     -- help text for that command
 """
 
