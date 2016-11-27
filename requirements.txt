@@ -1,4 +1,4 @@
 attr
 qbroker
-etcd_tree
 asyncio_dispatch
+blinker
