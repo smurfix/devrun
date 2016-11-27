@@ -28,7 +28,15 @@ This module interfaces to an ABL Sursum-style charger.
     async def query(self,func,b=None):
         return (await self.bus.query(self.adr,func,b))
 
+    def update_available(self,A):
+        logger.info("%s: avail %f => %f", self.name,self.A,A)
+        self.A = A
+        self.trigger.set()
+
     async def run(self):
+        self.charging = False
+        self.trigger = asyncio.Event()
+
         cfg = self.loc.get('config',{})
         mode = cfg.get('mode','auto')
         if mode == "manual":
@@ -44,28 +52,48 @@ This module interfaces to an ABL Sursum-style charger.
         self.meter = self.cmd.reg.bus.get(cfg['meter'])
         self.adr = cfg['address']
         self.A_max = cfg.get('A_max',32)
+        self.A_min = 6
+        self.A = self.A_max
+        self.power.register_charger(self)
+        self.cmd.reg.charger[self.name] = self
+
+        mode = await self.query(RT.state)
+        if mode == RM.manual:
+            await self.query(RT.set_auto)
 
         while True:
-            mode = await self.query(RT.state)
-            if mode == RM.manual:
-                await self.query(RT.set_auto)
-            if mode > RT.firstErr:
-                raise RuntimeError("Charger %s: error %s", self.name,RT[mode])
-            avail = self.power.available(self.name)
-            limited = await self.query(RT.break)
-            if limited:
-                await self.query(RT.clear_break)
-                if avail >= 6:
-                    await self.query(RT.set_pwm, avail*fADC)
-            else:
-                if avail < 6:
-                    await self.query(RT.set_break)
-
-
-            mode = await self.query(RT.state)
             if mode == RM.manual:
                 raise RuntimeError("mode is set to manual??")
+            if mode > RT.firstErr:
+                raise RuntimeError("Charger %s: error %s", self.name,RT[mode])
 
+            self.charging = (mode in RM.charging)
+            self.break = await self.query(RT.break)
+
+            if self.charging:
+                if self.A < self.A_min:
+                    logger.warn("%s: min power %f %f",self.name,self.A,self.A_min)
+                    await self.query(RT.enter_Ax)
+                    self.charging = False
+                else:
+                    await self.query(RT.set_pwm, self.A*fADC)
+            # not charging
+            elif self.A < self.A_min:
+                if mode == RM.Ax:
+                    await self.query(RT.leave_Ax)
+                elif not self.break:
+                    await self.query(RT.set_break)
+            else:
+                if self.break:
+                    await self.query(RT.clear_break)
+                await self.query(RT.set_pwm, self.A*fADC)
+
+            try:
+                await asyncio.timeout(cfg.get('interval',1), self.trigger.wait())
+            except asyncio.TimeoutError:
+                pass
+            else:
+                self.trigger.clear()
 
     async def run_manual(self):
         raise NotImplementedError("Don't know how to do it manually yet")
@@ -77,4 +105,5 @@ Device.register("config","address", cls=int, doc="This charger's address on the 
 Device.register("config","meter", cls=str, doc="Power meter to use")
 Device.register("config","power", cls=str, doc="Power supply to use")
 Device.register("config","A_max", cls=float, doc="Maximum allowed current")
+Device.register("config","interval", cls=float, doc="time between checks")
 
