@@ -31,6 +31,7 @@ It prints 'Ping from ‹name›' every second, or however often you set it to.
         await asyncio.sleep(cfg.get('delay',5))
         if w is not None:
             dev = await self.cmd.reg.test.get(w)
+            self.cmd.reg.test[self.name] = self
             n = 1
             while True:
                 await dev.q.put((self.name,n))

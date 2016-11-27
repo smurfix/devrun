@@ -100,6 +100,7 @@ as it exits when the client terminates.
         self.proto.transport.write(b'XXX\r\n')
         await asyncio.sleep(0.5)
         logger.info("Running: %s",self.name)
+        self.cmd.reg.bus[self.name] = self
 
         while True:
             d,f = await self.q.get()

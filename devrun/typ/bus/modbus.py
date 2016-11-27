@@ -57,6 +57,7 @@ or to a remote modbus gateway.
             self.proto = ReconnectingAsyncioModbusTcpClient()
             await self.proto.start(host,port)
 
+        self.cmd.reg.bus[self.name] = self
         await self.end.wait()
 
         logger.info("Stop: %s",self.name)

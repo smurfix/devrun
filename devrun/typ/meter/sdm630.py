@@ -50,6 +50,7 @@ This module interfaces to an SDM630 power meter via Modbus.
 
         val = await self.floats(172,1) # total
         self.last_total = abs(val[0])
+        self.cmd.reg.meter[self.name] = self
 
         while True:
             # the abs() calls are here because sometimes
