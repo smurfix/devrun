@@ -33,7 +33,7 @@ class rev:
         if cls._items is None:
             cls._items = {}
             for k,v in vars(cls).items():
-                if not k.startswith('_'):
+                if not k.startswith('_') and isinstance(v,(int,str)):
                     cls._items[v] = k
         return cls._items[x]
 

@@ -122,6 +122,7 @@ class RM(rev):
     Err_Locker = 37
     Err_verification = 39
     manual = 255
+    charging = {B2,C,D}
 
 class ReqReply:
     """encapsulate a request/reply exchanged while talking to the evc"""
