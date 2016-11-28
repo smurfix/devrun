@@ -30,5 +30,5 @@ It prints 'Ping from ‹name›' every second, or however often you set it to.
             await asyncio.sleep(self.loc.get('config',{}).get('interval',1), loop=self.cmd.loop)
             print("Ping from "+self.name)
 
-Device.register("config","interval", cls=float, doc="Interval between 'foo' pings")
+Device.register("config","interval", cls=float, doc="Interval between pings")
 
