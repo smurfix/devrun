@@ -42,9 +42,15 @@ This module interfaces to an SDM630 power meter via Modbus.
             raise
         return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
 
+    def register_charger(self,obj):
+        assert self.charger is None
+        self.charger = obj
+        self.trigger.set()
+
     async def run(self):
         self.signal = blinker.Signal()
         self.trigger = asyncio.Event(loop=self.cmd.loop)
+        self.charger = None
 
         self.amp = [0]*4
         self.watt = [0]*4
