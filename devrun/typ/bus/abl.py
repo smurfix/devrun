@@ -39,13 +39,14 @@ class EvcProtocol(asyncio.Protocol):
         logger.debug("raw recv: %s",repr(data))
         self.buf += data
         while True:
-            i = self.buf.index(b'\n')
+            i = self.buf.find(b'\n')
             if i < 0:
                 break
-            data,self.buf = self.buf[0:i],self.buf[i:]
-            data = ReqReply(data)
-            logger.debug("recv: %s",data)
-            self.parent.msg_received(data)
+            data,self.buf = self.buf[0:i],self.buf[i+1:]
+            if data:
+                data = ReqReply.build(data)
+                logger.debug("recv: %s",data)
+                self.parent.msg_received(data)
 
     def send(self,req):
         logger.debug("send: %s",str(req))
