@@ -22,6 +22,14 @@ from devrun.support.abl import Request,Reply, fADC,RM,RT
 import logging
 logger = logging.getLogger(__name__)
 
+def pwm(A):
+    if A < 6:
+        return 0
+    if A >= 50:
+        return int((A/.25)+640)
+    else:
+        return int(A/0.06)
+
 class Device(BaseDevice):
     """ABL Sursum chargers"""
     help = """\
@@ -93,7 +101,7 @@ This module interfaces to an ABL Sursum-style charger.
                     await self.query(RT.enter_Ax)
                     self.charging = False
                 else:
-                    await self.query(RT.set_pwm, self.A*fADC)
+                    await self.query(RT.set_pwm, pwm(self.A))
             # not charging
             elif self.A < self.A_min:
                 if mode == RM.Ax:
@@ -103,7 +111,7 @@ This module interfaces to an ABL Sursum-style charger.
             else:
                 if self.break:
                     await self.query(RT.clear_break)
-                await self.query(RT.set_pwm, self.A*fADC)
+                await self.query(RT.set_pwm, pwm(self.A))
 
             try:
                 await asyncio.wait_for(self.trigger.wait(), cfg.get('interval',1), loop=self.cmd.loop)
