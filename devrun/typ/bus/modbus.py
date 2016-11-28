@@ -31,7 +31,7 @@ This is a link to Modbus.
 You can connect to a local serial interface,
 or to a remote modbus gateway.
 """
-    
+
     proto = None
 
     async def run(self):
@@ -57,6 +57,7 @@ or to a remote modbus gateway.
             self.proto = ReconnectingAsyncioModbusTcpClient()
             await self.proto.start(host,port)
 
+        self.cmd.reg.bus[self.name] = self
         await self.end.wait()
 
         logger.info("Stop: %s",self.name)

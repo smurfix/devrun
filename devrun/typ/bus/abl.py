@@ -68,7 +68,7 @@ or to a remote interface by way of a "socat" command or similar:
 Be sure to auto-restart this command,
 as it exits when the client terminates.
 """
-    
+
     proto = None
 
     async def run(self):
@@ -100,6 +100,7 @@ as it exits when the client terminates.
         self.proto.transport.write(b'XXX\r\n')
         await asyncio.sleep(0.5)
         logger.info("Running: %s",self.name)
+        self.cmd.reg.bus[self.name] = self
 
         while True:
             d,f = await self.q.get()
@@ -111,9 +112,9 @@ as it exits when the client terminates.
             try:
                 res = await wait_for(self.req, 0.5)
             except Exception as exc:
-                f.set_exception(exc)   
+                f.set_exception(exc)
             except BaseException as exc:
-                f.set_exception(exc)   
+                f.set_exception(exc)
                 raise
             else:
                 f.set_result(res)

@@ -8,7 +8,7 @@ subdirectories using a ``type`` to describe the actual instance. Thus, a
 typical (albeit incomplete) data structure for managing an array of
 chargers for electric cars would be
 
-    
+
         charger
             s1
                 type: EVCC_auto

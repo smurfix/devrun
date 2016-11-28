@@ -18,7 +18,7 @@ Create a configuration file:
           type: ping
           config:
             interval: 1.5
-      
+
 
 -----------
 Basic usage

@@ -26,7 +26,7 @@ class RO(rev):
     K3 = 4
     CPpos = 5 # +12V
     CPneg = 6 # .12V
-    
+
 class RI(rev):
     "EVCC input bits"
     E1 = 0
@@ -59,7 +59,7 @@ class RT(rev):
 
     # RM
     state = 2
-    
+
     set_manual = 3
 
     # bits: RO
@@ -104,7 +104,7 @@ class RT(rev):
 
     # device is unavailable
     enter_Ax = 30
-    leave_Ax = 30
+    leave_Ax = 31
 
     reset_b = 1111
 
@@ -122,6 +122,7 @@ class RM(rev):
     Err_Locker = 37
     Err_verification = 39
     manual = 255
+    charging = {B2,C,D}
 
 class ReqReply:
     """encapsulate a request/reply exchanged while talking to the evc"""

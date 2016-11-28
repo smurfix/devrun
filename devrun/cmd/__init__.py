@@ -33,7 +33,7 @@ def parser(**kw):
     res.add_argument('-q', '--quiet', dest='verbose', action='store_const', const=0,
                         help='quiet operation')
     return res
-    
+
 class BaseCommand:
     help = None
     cfg = None
@@ -46,7 +46,7 @@ class BaseCommand:
     async def setup(self):
         if getattr(self,'amqp',None) is None:
             self.amqp = await qbroker.make_conn
-        
+
     async def run(self):
         raise NotImplementedError("You need to override .run()")
     async def stop(self):

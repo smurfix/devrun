@@ -13,23 +13,17 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ## Thus, please do not remove the next line, or insert any blank lines.
 ##BP
 
-import asyncio
-import sys
+"""\
+This module implements power feeds.
 
-from . import BaseDevice
-
-class Device(BaseDevice):
-    """Test device for annoying people"""
-    help = """\
-This is the Ping device.
-It prints 'Ping from ‹name›' every second, or however often you set it to.
 """
 
-    async def run(self):
-        self.cmd.reg.test[self.name] = self
-        while True:
-            await asyncio.sleep(self.loc.get('config',{}).get('interval',1), loop=self.cmd.loop)
-            print("Ping from "+self.name)
+from devrun.typ import BaseType
+from devrun.device import BaseDevice # as _BaseDevice
 
-Device.register("config","interval", cls=float, doc="Interval between pings")
+class Type(BaseType):
+    "This class is about power feeds."
+    help = "Power feed."
 
+#class BaseDevice(_BaseDevice):
+#    pass

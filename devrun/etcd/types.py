@@ -89,7 +89,7 @@ class MyRun:
         self._job.cancel()
         self._job.add_done_function(self.job_done)
         self._job = None
-        
+
     def has_update(self):
         super().has_update()
         if self._job is not None:
@@ -123,7 +123,7 @@ class EvcDevice(MyRun, recEtcDir,EtcDir):
             raise ReloadData
         import pdb;pdb.set_trace()
         m = 'devrun.typ.%s.%s.Device' % (self.parent.name,pre['type'])
-    
+
     @classmethod
     def check_new_params(self, **params):
         pass
@@ -156,7 +156,7 @@ class EvcRoot(SubRun,EtcRoot):
         except KeyError: # does not exist yet
             pass
         await super().init()
-    
+
     async def _start_run(self):
         while True:
             x = self._start_q.get()
