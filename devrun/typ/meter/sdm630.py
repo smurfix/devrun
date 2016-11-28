@@ -47,6 +47,13 @@ This module interfaces to an SDM630 power meter via Modbus.
         self.charger = obj
         self.trigger.set()
 
+    @property
+    def in_use(self):
+        if self.charger is None:
+            return False
+        else:
+            return self.charger.charging
+
     async def run(self):
         self.signal = blinker.Signal()
         self.trigger = asyncio.Event(loop=self.cmd.loop)
@@ -56,7 +63,6 @@ This module interfaces to an SDM630 power meter via Modbus.
         self.watt = [0]*4
         self.VA = [0]*4
         self.factor = [0]*4
-        self.in_use = False
 
         cfg = self.loc.get('config',{})
         ### auto mode
