@@ -144,7 +144,11 @@ class ReqReply:
     @property
     def bytes(self):
         r = "%c%d %02d" % (self.lead,self.nr,self.a)
-        if self.b is not None:
+        if self.b is None:
+            pass
+        elif isinstance(self.b,int):
+            r += ' %04d' % self.b
+        else:
             r += ' ' + self.b
         r += '\r\n'
         return r.encode('ascii')
