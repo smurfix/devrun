@@ -160,7 +160,7 @@ as it exits when the client terminates.
             res = None
         return res
 
-    async def query(adr,func,b=None):
+    async def query(self,adr,func,b=None):
         req = Request(adr,func,b)
         res = await self.do_request(req)
         try:
