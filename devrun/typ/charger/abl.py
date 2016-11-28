@@ -70,8 +70,7 @@ This module interfaces to an ABL Sursum-style charger.
     async def run_manual(self):
         raise NotImplementedError("Don't know how to do it manually yet")
 
-Device.register("config","mode", cls=str, doc="Operating mode (auto or
-manual)")
+Device.register("config","mode", cls=str, doc="Operating mode (auto or manual)")
 Device.register("config","bus", cls=str, doc="Bus to connect to")
 Device.register("config","address", cls=int, doc="This charger's address on the bus")
 Device.register("config","meter", cls=str, doc="Power meter to use")
