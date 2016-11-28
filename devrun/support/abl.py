@@ -126,6 +126,7 @@ class RM:
     Err_AV = 35
     Err_Locker = 37
     Err_verification = 39
+    transient = 64
     manual = 255
     charging = {B2,C,D}
 

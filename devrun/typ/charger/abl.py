@@ -84,36 +84,37 @@ This module interfaces to an ABL Sursum-style charger.
             mode = await self.query(RT.state)
             if mode == RM.manual:
                 raise RuntimeError("mode is set to manual??")
-            if mode > RM.firstErr:
+            elif mode & RM.transient:
+                logger.warn("%s: transient %d",self.name,mode)
+            elif mode > RM.firstErr:
                 raise RuntimeError("Charger %s: error %s", self.name,RM[mode])
-
-            self.charging = (mode in RM.charging)
-            self.brk = await self.query(RT.brk)
-
-            a = await self.query(RT.input)
-            b = await self.query(RT.output)
-            c = await self.query(RT.adc_cp_pos)*fADC
-            d = await self.query(RT.adc_cp_neg)*fADC
-            e = await self.query(RT.adc_cs)*fADC
-            logger.debug("I %x O %x + %.02f - %.02f CS %.02f",a,b,c,d,e)
-
-            if self.charging:
-                if self.A < self.A_min:
-                    logger.warn("%s: min power %f %f",self.name,self.A,self.A_min)
-                    await self.query(RT.enter_Ax)
-                    self.charging = False
-                else:
-                    await self.query(RT.set_pwm, pwm(self.A))
-            # not charging
-            elif self.A < self.A_min:
-                if mode == RM.Ax:
-                    await self.query(RT.leave_Ax)
-                elif not self.brk:
-                    await self.query(RT.set_brk)
             else:
-                if self.brk:
-                    await self.query(RT.clear_brk)
-                await self.query(RT.set_pwm, pwm(self.A))
+                self.charging = (mode in RM.charging)
+                self.brk = await self.query(RT.brk)
+
+                a = await self.query(RT.input)
+                b = await self.query(RT.output)
+                c = await self.query(RT.adc_cp_pos)*fADC
+                d = await self.query(RT.adc_cp_neg)*fADC
+                e = await self.query(RT.adc_cs)*12/1023
+                logger.info("M %s I %x O %x + %.02f - %.02f CS %.02f, power %.02f, ch %s brk %s",RM[mode],a,b,c,d,e, self.A, 'Y' if self.charging else 'N', 'Y' if self.brk else 'N')
+
+                if self.charging:
+                    if self.A < self.A_min:
+                        logger.warn("%s: min power %f %f",self.name,self.A,self.A_min)
+                        await self.query(RT.enter_Ax)
+                    else:
+                        await self.query(RT.set_pwm, pwm(self.A))
+                # not charging
+                elif self.A < self.A_min:
+                    if not self.brk:
+                        await self.query(RT.set_brk)
+                    if mode == RM.Ax:
+                        await self.query(RT.leave_Ax)
+                else:
+                    if self.brk:
+                        await self.query(RT.clear_brk)
+                    await self.query(RT.set_pwm, pwm(self.A))
 
             try:
                 await asyncio.wait_for(self.trigger.wait(), cfg.get('interval',1), loop=self.cmd.loop)
