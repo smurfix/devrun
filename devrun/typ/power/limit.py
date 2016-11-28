@@ -41,17 +41,44 @@ current.
                 yield k
 
     def update_available(self):
-        Amax = 0
-        Amin = 0
-        Aused = [0,0,0]
-        n_c = 0
+        Amax = 0 # if everybod charges maximally
+        Amin = 0 # if everybod charges minimally
+        Adelta = 0 # unassigned capacity
+        Awanted = [0,0,0] # sum of currents which the chargers would like to get
+        Aidle = 0 # requirements of idle statiosn
+        n_c = 0 # number of charging stations
+        n_nc = 0 # number of non-charging stations
+
+        # first, check current usage
         for k in self.charging:
             Amax += k.A_max
             Amin += k.A_min
-            for n in (1,2,3):
-                Aused[n-1] += k.meter.amp[n]
+            Am = 0
+            for n in (0,1,2):
+                A = min(k.meter.amp[n]*self.headroom if k.charge_time > self.ramp_up else k.A_max, k.A)
+                Am = max(Am,A)
+                Awanted[n] += A
+            Adelta += k.A_max-Am
             n_c += 1
-        Aused = max(Aused)
+        Awanted = max(Awanted)
+        # Awanted is the current 
+
+        # sum requirements of idle stations
+        for k in self.not_charging:
+            n_nc += k
+            Aidle += k.A_min
+        logger.info("max %.1f, min %.1f, wanted %.1f, delta %.1f, idle %.1f", Amax,Amin,Awanted,Adelta,Aidle)
+
+        Aavail = self.A_max-Awanted
+        if Aavail > Adelta:
+            # we can assign max power to every station
+            pass
+
+        if Aidle > self.A_max-Awanted:
+            # we can give all idle stations enough for min power
+            pass
+        else:
+            pass
 
         if n_c == 0:
             Afree = self.A_max
@@ -79,10 +106,8 @@ current.
         # TODO: check meters for actual power use
 
         for k in self.not_charging:
-            if Afree >= k.A_min:
+            if Afree/n_nc >= k.A_min:
                 k.update_available(k.A_min)
-                # TODO: free more, if possible
-                Afree -= k.A_min
             else:
                 k.update_available(0)
 
@@ -96,6 +121,8 @@ current.
     async def run(self):
         cfg = self.loc.get('config',{})
         self.A_max = cfg['A_max']
+        self.ramp_up = cfg.get('ramp_up',5*60)
+        self.headroom = cfg.get('headroom',1.1)
         self.chargers = {}
         self.q = asyncio.Queue()
         self.cmd.reg.power[self.name] = self
@@ -108,5 +135,7 @@ current.
                 self.chargers[obj.name] = obj
                 obj.signal.connect(self.has_values)
 
-Device.register("config","A_max", cls=float, doc="Maximum allowed current")
+Device.register("config","A_max", cls=float, doc="Maximum allowed current, required")
+Device.register("config","ramp_up", cls=float, doc="charge time with full power, default 5min")
+Device.register("config","headroom", cls=float, doc="additional current limit, default 1.1 times current usage")
 

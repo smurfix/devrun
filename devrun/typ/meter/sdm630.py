@@ -55,6 +55,7 @@ This module interfaces to an SDM630 power meter via Modbus.
         self.signal = blinker.Signal()
         self.trigger = asyncio.Event(loop=self.cmd.loop)
         self.charger = None
+        self.cur_total = 0
 
         self.amp = [0]*4
         self.watt = [0]*4
@@ -68,7 +69,7 @@ This module interfaces to an SDM630 power meter via Modbus.
         self.power = await self.cmd.reg.power.get(cfg['power'])
 
         val = await self.floats(172,1) # total
-        self.last_total = abs(val[0])
+        self.last_total = abs(val[0])*1000
         self.cmd.reg.meter[self.name] = self
 
         while True:
@@ -84,30 +85,31 @@ This module interfaces to an SDM630 power meter via Modbus.
             try:
                 val = await self.floats(4,12) # current,power,VA
 
-                self.amp[1] = abs(val[0])
-                self.amp[2] = abs(val[1])
-                self.amp[3] = abs(val[2])
+                self.amp[0] = abs(val[0])
+                self.amp[1] = abs(val[1])
+                self.amp[2] = abs(val[2])
+                self.amp_max = max(self.amp)
 
-                self.watt[1] = abs(val[3])
-                self.watt[2] = abs(val[4])
-                self.watt[3] = abs(val[5])
+                self.watt[0] = abs(val[3])
+                self.watt[1] = abs(val[4])
+                self.watt[2] = abs(val[5])
 
-                self.VA[1] = abs(val[6])
-                self.VA[2] = abs(val[7])
-                self.VA[3] = abs(val[8])
+                self.VA[0] = abs(val[6])
+                self.VA[1] = abs(val[7])
+                self.VA[2] = abs(val[8])
 
-                self.factor[1] = abs(val[9])
-                self.factor[2] = abs(val[10])
-                self.factor[3] = abs(val[11])
+                self.factor[0] = abs(val[9])
+                self.factor[1] = abs(val[10])
+                self.factor[2] = abs(val[11])
 
                 val = await self.floats(25,5) # totals
-                self.amp[0] = abs(val[0])
-                self.watt[0] = abs(val[2]) # 27
-                self.VA[0] = abs(val[4]) # 29
+                self.amps = abs(val[0])
+                self.watts = abs(val[2]) # 27
+                self.VAs = abs(val[4]) # 29
 
                 val = await self.floats(172,1) # total
-                self.cur_total = abs(val[0]) - self.last_total
-                logger.info("%s: amp %f watt %f va %f",self.name, self.amp[0],self.watt[0],self.VA[0])
+                self.cur_total = abs(val[0])*1000 - self.last_total
+                logger.info("%s: amp %.1f %s watt %.1f va %.1f sum %.1f",self.name, self.amps, ','.join('%.2f' % x for x in self.amp),self.watts,self.VAs,self.cur_total)
                 self.signal.send(self)
             except ModbusException as exc:
                 logger.warning("%s: %s from %s:%s",self.name,exc, self.bus.name,self.adr)
