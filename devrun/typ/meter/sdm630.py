@@ -83,7 +83,7 @@ This module interfaces to an SDM630 power meter via Modbus.
             # the abs() calls are here because sometimes
             # people connect their meters the wrong way
             try:
-                val = await self.floats(4,12) # current,power,VA
+                val = await self.floats(4,15) # current,power,VA
 
                 self.amp[0] = abs(val[0])
                 self.amp[1] = abs(val[1])
@@ -98,9 +98,14 @@ This module interfaces to an SDM630 power meter via Modbus.
                 self.VA[1] = abs(val[7])
                 self.VA[2] = abs(val[8])
 
-                self.factor[0] = abs(val[9])
-                self.factor[1] = abs(val[10])
-                self.factor[2] = abs(val[11])
+                self.factor[0] = abs(val[12])
+                self.factor[1] = abs(val[13])
+                self.factor[2] = abs(val[14])
+                asum = sum(self.amp)
+                if asum == 0:
+                    self.factor_avg = 1
+                else:
+                    self.factor_avg = sum(self.amp[n]*self.factor[n] for n in (0,1,2))/asum
 
                 val = await self.floats(25,5) # totals
                 self.amps = abs(val[0])
@@ -109,7 +114,9 @@ This module interfaces to an SDM630 power meter via Modbus.
 
                 val = await self.floats(172,1) # total
                 self.cur_total = abs(val[0])*1000 - self.last_total
-                logger.info("%s: amp %.1f %s watt %.1f va %.1f sum %.1f",self.name, self.amps, ','.join('%.2f' % x for x in self.amp),self.watts,self.VAs,self.cur_total)
+                logger.info("%s: amp %.1f %s pf %.3f watt %.1f va %.1f sum %.1f",self.name,
+                    self.amps, ','.join('%.2f' % x for x in self.amp),
+                    self.factor_avg,self.watts,self.VAs,self.cur_total)
                 self.signal.send(self)
             except ModbusException as exc:
                 logger.warning("%s: %s from %s:%s",self.name,exc, self.bus.name,self.adr)
