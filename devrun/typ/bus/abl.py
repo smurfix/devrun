@@ -33,7 +33,7 @@ class EvcProtocol(asyncio.Protocol):
 
     def connection_made(self, transport):
         self.transport = transport
-        self.parent.protocol = self
+        self.parent.start(self)
 
     def data_received(self, data):
         logger.debug("raw recv: %s",repr(data))
