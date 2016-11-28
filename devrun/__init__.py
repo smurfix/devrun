@@ -18,15 +18,6 @@ __VERSION__ = (0,1,0)
 
 import asyncio
 
-def setup(_loop=None):
-    global loop
-    if loop is None:
-        loop = _loop or asyncio.get_event_loop()
-    elif _loop is not None:
-        assert loop is _loop
-
-loop = None # set by setup()
-
 async def get_amqp(cfg, loop=None):
     import qbroker
     qbroker.setup()
