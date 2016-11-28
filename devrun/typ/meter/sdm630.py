@@ -20,6 +20,7 @@ import struct
 
 from . import BaseDevice
 from devrun.support.abl import RT,Request,Reply
+from devrun.support.modbus import ModbusException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -35,11 +36,7 @@ This module interfaces to an SDM630 power meter via Modbus.
 
     async def floats(self, start,count):
         rr = await self.bus.read_input_registers(start*2-2,count*2, unit=self.adr)
-        try:
-            n = len(rr.registers)
-        except AttributeError:
-            import pdb;pdb.set_trace()
-            raise
+        n = len(rr.registers)
         return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
 
     def register_charger(self,obj):
@@ -84,33 +81,38 @@ This module interfaces to an SDM630 power meter via Modbus.
 
             # the abs() calls are here because sometimes
             # people connect their meters the wrong way
-            val = await self.floats(4,12) # current,power,VA
+            try:
+                val = await self.floats(4,12) # current,power,VA
 
-            self.amp[1] = abs(val[0])
-            self.amp[2] = abs(val[1])
-            self.amp[3] = abs(val[2])
+                self.amp[1] = abs(val[0])
+                self.amp[2] = abs(val[1])
+                self.amp[3] = abs(val[2])
 
-            self.watt[1] = abs(val[3])
-            self.watt[2] = abs(val[4])
-            self.watt[3] = abs(val[5])
+                self.watt[1] = abs(val[3])
+                self.watt[2] = abs(val[4])
+                self.watt[3] = abs(val[5])
 
-            self.VA[1] = abs(val[6])
-            self.VA[2] = abs(val[7])
-            self.VA[3] = abs(val[8])
+                self.VA[1] = abs(val[6])
+                self.VA[2] = abs(val[7])
+                self.VA[3] = abs(val[8])
 
-            self.factor[1] = abs(val[9])
-            self.factor[2] = abs(val[10])
-            self.factor[3] = abs(val[11])
+                self.factor[1] = abs(val[9])
+                self.factor[2] = abs(val[10])
+                self.factor[3] = abs(val[11])
 
-            val = await self.floats(25,5) # totals
-            self.amp[0] = abs(val[0])
-            self.watt[0] = abs(val[2]) # 27
-            self.VA[0] = abs(val[4]) # 29
+                val = await self.floats(25,5) # totals
+                self.amp[0] = abs(val[0])
+                self.watt[0] = abs(val[2]) # 27
+                self.VA[0] = abs(val[4]) # 29
 
-            val = await self.floats(172,1) # total
-            self.cur_total = abs(val[0]) - self.last_total
-            logger.debug("%s: amp %f watt %f va %f",self.name, self.amp[0],self.watt[0],self.VA[0])
-            self.signal.send(self)
+                val = await self.floats(172,1) # total
+                self.cur_total = abs(val[0]) - self.last_total
+                logger.info("%s: amp %f watt %f va %f",self.name, self.amp[0],self.watt[0],self.VA[0])
+                self.signal.send(self)
+            except ModbusException as exc:
+                logger.warning("%s: %s from %s:%s",self.name,exc, self.bus.name,self.adr)
+                self.trigger.set()
+                
 
 Device.register("config","bus", cls=str, doc="Bus to connect to")
 Device.register("config","address", cls=int, doc="This charger's address on the bus")

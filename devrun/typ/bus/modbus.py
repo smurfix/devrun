@@ -15,8 +15,10 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import asyncio
 import sys
+from devrun.support.modbus import ModbusException
 from pymodbus.client.async_asyncio import ReconnectingAsyncioModbusTcpClient
 from pymodbus.client.common import ModbusClientMixin
+from pymodbus.pdu import ExceptionResponse
 
 from . import BaseDevice
 
@@ -68,7 +70,10 @@ or to a remote modbus gateway.
         self.event.set()
 
     async def execute(self,request):
-        return (await self.proto.protocol.execute(request))
+        res = await self.proto.protocol.execute(request)
+        if isinstance(res, ExceptionResponse):
+            raise ModbusException(res)
+        return res
 
 
 Device.register("config","host", cls=str, doc="Host[:port] to connect to, or /dev/serial")
