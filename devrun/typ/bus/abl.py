@@ -26,7 +26,7 @@ class NoData(RuntimeError):
     pass
 
 class EvcProtocol(asyncio.Protocol):
-    buf = ''
+    buf = b''
 
     def __init__(self, parent):
         self.parent = parent
