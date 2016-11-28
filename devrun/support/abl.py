@@ -138,7 +138,7 @@ class ReqReply:
         self.b = b
 
     def __str__(self):
-        return self.bytes().decode('ascii').strip()
+        return self.bytes.decode('ascii').strip()
 
     @property
     def bytes(self):
