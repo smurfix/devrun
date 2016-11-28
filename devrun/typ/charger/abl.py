@@ -90,7 +90,14 @@ This module interfaces to an ABL Sursum-style charger.
 
         logger.info("Start: %s",self.name)
         while True:
-            mode = await self.query(RT.state)
+            while True:
+                mode = await self.query(RT.state)
+                await asyncio.sleep(0.1,loop=self.cmd.loop)
+                mode2 = await self.query(RT.state)
+                if mode == mode2:
+                    break
+                logger.warn("%s: modes %d %d",self.name,mode,mode2)
+
             if mode == RM.manual:
                 raise RuntimeError("mode is set to manual??")
             elif mode & RM.transient:
