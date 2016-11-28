@@ -20,6 +20,9 @@ import blinker
 from . import BaseDevice
 from devrun.support.abl import RT,Request,Reply
 
+import logging
+logger = logging.getLogger(__name__)
+
 class Device(BaseDevice):
     """SDM630 power meters"""
     help = """\

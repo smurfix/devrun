@@ -19,6 +19,9 @@ import sys
 from . import BaseDevice
 from devrun.support.abl import Request,Reply, fADC,RM,RT
 
+import logging
+logger = logging.getLogger(__name__)
+
 class Device(BaseDevice):
     """ABL Sursum chargers"""
     help = """\
@@ -34,6 +37,7 @@ This module interfaces to an ABL Sursum-style charger.
         self.trigger.set()
 
     async def run(self):
+        logger.debug("%s: starting", self.name)
         self.charging = False
         self.trigger = asyncio.Event(loop=self.cmd.loop)
 
@@ -48,8 +52,11 @@ This module interfaces to an ABL Sursum-style charger.
 
         ### auto mode
         self.bus = await self.cmd.reg.bus.get(cfg['bus'])
+        logger.debug("%s: got bus %s", self.name,self.bus.name)
         self.power = await self.cmd.reg.power.get(cfg['power'])
+        logger.debug("%s: got power %s", self.name,self.power.name)
         self.meter = await self.cmd.reg.meter.get(cfg['meter'])
+        logger.debug("%s: got meter %s", self.name,self.meter.name)
         self.adr = cfg['address']
         self.A_max = cfg.get('A_max',32)
         self.A_min = 6
@@ -58,9 +65,12 @@ This module interfaces to an ABL Sursum-style charger.
         self.cmd.reg.charger[self.name] = self
 
         mode = await self.query(RT.state)
+        logger.debug("%s: got mode %s", self.name,RM[mode])
+
         if mode == RM.manual:
             await self.query(RT.set_auto)
 
+        logger.info("Start: %s",self.name)
         while True:
             if mode == RM.manual:
                 raise RuntimeError("mode is set to manual??")
@@ -69,6 +79,13 @@ This module interfaces to an ABL Sursum-style charger.
 
             self.charging = (mode in RM.charging)
             self.break = await self.query(RT.break)
+
+            a = await self.query(RT.input)
+            b = await self.query(RT.output)
+            c = await self.query(RT.adc_cp_pos)*fADC
+            d = await self.query(RT.adc_cp_neg)*fADC
+            e = await self.query(RT.adc_cs)*fADC
+            logger.debug("I %x O %x + %.02f - %.02f CS %.02f",a,b,c,d,e)
 
             if self.charging:
                 if self.A < self.A_min:

@@ -101,11 +101,13 @@ current.
         chargers = {}
         self.q = asyncio.Queue()
         self.cmd.reg.power[self.name] = self
+        logger.info("Start: %s",self.name)
 
         while True:
             cmd,obj = await self.q.get()
             if cmd == 'reg':
                 chargers[obj.name] = obj
+                logger.debug("Reg: charger %s",obj.name)
                 obj.signal.connect(self.has_values)
 
 Device.register("config","A_max", cls=float, doc="Maximum allowed current")
