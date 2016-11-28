@@ -16,6 +16,9 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import asyncio
 
+import logging
+logger = logging.getLogger(__name__)
+
 class BaseDevice(object):
     _reg = {}
 
@@ -116,6 +119,7 @@ class _SubReg:
             yield v
 
     def __setitem__(self,k,v):
+        logger.debug("reg %s.%s",self.name,k)
         f = self.reg.get(k,None)
         if f is None:
             pass
@@ -129,10 +133,13 @@ class _SubReg:
     async def get(self,k):
         f = self.reg.get(k,None)
         if f is None:
+            logger.debug("wait for %s.%s",self.name,k)
             f = self.reg[k] = asyncio.Future(loop=self.loop)
         elif isinstance(f,asyncio.Future):
+            logger.debug("also wait for %s.%s",self.name,k)
             pass
         else:
+            logger.debug("found %s.%s",self.name,k)
             return f
         return (await f)
 
