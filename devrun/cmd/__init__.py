@@ -18,6 +18,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 import argparse
 import os
 import qbroker
+import asyncio
 
 from devrun.util import import_string, load_cfg
 from devrun.device import Registry
@@ -39,9 +40,11 @@ class BaseCommand:
     cfg = None
     def __init__(self, opt):
         self.opt = opt
+        self.loop = opt.loop
         self.reg = Registry()
         if getattr(self,'cfg',None) is None:
             self.cfg = load_cfg(opt.config)
+        self.loop.call_later(10,self.reg.done)
 
     async def setup(self):
         if getattr(self,'amqp',None) is None:
