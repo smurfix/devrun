@@ -15,6 +15,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import asyncio
 import sys
+from time import time
 
 from . import BaseDevice
 from devrun.support.abl import Request,Reply, fADC,RM,RT
@@ -53,9 +54,38 @@ This module interfaces to an ABL Sursum-style charger.
         logger.warn("%s: Turn off Ax", self.name)
         await self.query(RT.leave_Ax)
 
+    _charging = False
+    charge_start = 0
+    charge_end = 0
+    charge_init = 0
+    charge_exit = 0
+    @property
+    def charging(self):
+        return self._charging
+    @charging.setter
+    def charging(self,val):
+        if val:
+            if not self._charging:
+                self.charge_start = time()
+                self.charge_init = self.meter.cur_total
+                self._charging = True
+        else:
+            if self._charging:
+                self.charge_end = time()
+                self.charge_exit = self.meter.cur_total
+                self._charging = False
+
+    @property
+    def charge_time(self):
+        return (time() if self._charging else self.charge_end)-self.charge_start
+    @property
+    def charge_amount(self):
+        return (self.meter.cur_total if self._charging else self.charge_exit)-self.charge_init
+
+
     async def run(self):
         logger.debug("%s: starting", self.name)
-        self.charging = False
+        self._charging = False
         self.trigger = asyncio.Event(loop=self.cmd.loop)
 
         cfg = self.loc.get('config',{})
@@ -114,7 +144,7 @@ This module interfaces to an ABL Sursum-style charger.
                 c = await self.query(RT.adc_cp_pos)*fADC
                 d = await self.query(RT.adc_cp_neg)*fADC
                 e = await self.query(RT.adc_cs)*12/1023
-                logger.info("M %s I %x O %x + %.02f - %.02f CS %.02f, power %.02f, ch %s brk %s",RM[mode],a,b,c,d,e, self.A, 'Y' if self.charging else 'N', 'Y' if self.brk else 'N')
+                logger.info("M %s I %x O %x + %.02f - %.02f CS %.02f, power %.02f, ch %s brk %s, ch %.01f %.1f",RM[mode],a,b,c,d,e, self.A, 'Y' if self.charging else 'N', 'Y' if self.brk else 'N', self.charge_time,self.charge_amount)
 
                 if self.charging:
                     if self.A < self.A_min:
