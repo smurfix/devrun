@@ -67,9 +67,9 @@ This module interfaces to an SDM630 power meter via Modbus.
             # people connect their meters the wrong way
             val = await self.floats(4,12) # current,power,VA
 
-            self.amps[1] = abs(val[0])
-            self.amps[2] = abs(val[1])
-            self.amps[3] = abs(val[2])
+            self.amp[1] = abs(val[0])
+            self.amp[2] = abs(val[1])
+            self.amp[3] = abs(val[2])
 
             self.watt[1] = abs(val[3])
             self.watt[2] = abs(val[4])
