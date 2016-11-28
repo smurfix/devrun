@@ -47,9 +47,9 @@ This module interfaces to an ABL Sursum-style charger.
             raise ConfigError("Mode needs to be 'auto' or 'manual'")
 
         ### auto mode
-        self.bus = self.cmd.reg.bus.get(cfg['bus'])
-        self.power = self.cmd.reg.bus.get(cfg['power'])
-        self.meter = self.cmd.reg.bus.get(cfg['meter'])
+        self.bus = await self.cmd.reg.bus.get(cfg['bus'])
+        self.power = await self.cmd.reg.power.get(cfg['power'])
+        self.meter = await self.cmd.reg.meter.get(cfg['meter'])
         self.adr = cfg['address']
         self.A_max = cfg.get('A_max',32)
         self.A_min = 6
