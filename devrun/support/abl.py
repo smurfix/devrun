@@ -17,7 +17,8 @@ from devrun.support import rev
 
 fADC = 0.017
 
-class RO(rev):
+@rev
+class RO:
     "EVCC output bits"
     X1 = 0
     X2 = 1
@@ -27,12 +28,14 @@ class RO(rev):
     CPpos = 5 # +12V
     CPneg = 6 # .12V
 
-class RI(rev):
+@rev
+class RI:
     "EVCC input bits"
     E1 = 0
     E2 = 1
 
-class RP(rev):
+@rev
+class RP:
     "PWM control values"
     A6 = 0
     A10 = 1
@@ -49,7 +52,8 @@ class RP(rev):
     max = 970
     not_allowed = 999
 
-class RT(rev):
+@rev
+class RT:
     "EVCC commmands"
     # b == RT.reset_b
     reset = 0
@@ -108,7 +112,8 @@ class RT(rev):
 
     reset_b = 1111
 
-class RM(rev):
+@rev
+class RM:
     A = 0
     B2 = 4
     C = 5

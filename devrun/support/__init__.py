@@ -13,7 +13,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ## Thus, please do not remove the next line, or insert any blank lines.
 ##BP
 
-class rev:
+def rev(cls):
     """\
         Add a reverse-lookup via dict.
 
@@ -27,13 +27,15 @@ class rev:
             'A'
 
     """
-    _items = None
-    @classmethod
-    def __getitem__(cls,x):
-        if cls._items is None:
-            cls._items = {}
-            for k,v in vars(cls).items():
+    cls._items = None
+
+    def __getitem__(self,x):
+        if self._items is None:
+            self._items = {}
+            for k,v in vars(type(self)).items():
                 if not k.startswith('_') and isinstance(v,(int,str)):
-                    cls._items[v] = k
-        return cls._items[x]
+                    self._items[v] = k
+        return self._items[x]
+    cls.__getitem__ = __getitem__
+    return cls()
 
