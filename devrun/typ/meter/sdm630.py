@@ -57,10 +57,10 @@ This module interfaces to an SDM630 power meter via Modbus.
         self.charger = None
         self.cur_total = 0
 
-        self.amp = [0]*4
-        self.watt = [0]*4
-        self.VA = [0]*4
-        self.factor = [0]*4
+        self.amp = [0]*3
+        self.watt = [0]*3
+        self.VA = [0]*3
+        self.factor = [0]*3
 
         cfg = self.loc.get('config',{})
         ### auto mode
