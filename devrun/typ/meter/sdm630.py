@@ -34,7 +34,7 @@ This module interfaces to an SDM630 power meter via Modbus.
 
     async def run(self):
         self.signal = blinker.signal(self.name)
-        self.trigger = asyncio.Event()
+        self.trigger = asyncio.Event(loop=self.cmd.loop)
 
         self.amp = [0]*4
         self.watt = [0]*4
@@ -53,6 +53,13 @@ This module interfaces to an SDM630 power meter via Modbus.
         self.cmd.reg.meter[self.name] = self
 
         while True:
+            try:
+                await asyncio.wait_for(self.trigger.wait(), cfg.get('interval' if self.in_use else 'idle',1), loop=self.cmd.loop)
+            except asyncio.TimeoutError:
+                pass
+            else:
+                self.trigger.clear()
+
             # the abs() calls are here because sometimes
             # people connect their meters the wrong way
             val = await self.floats(4,12) # current,power,VA
@@ -74,20 +81,14 @@ This module interfaces to an SDM630 power meter via Modbus.
             self.factor[3] = abs(val[11])
 
             val = await self.floats(25,5) # totals
-            self.amps[0] = abs(val[0])
+            self.amp[0] = abs(val[0])
             self.watt[0] = abs(val[2]) # 27
             self.VA[0] = abs(val[4]) # 29
 
             val = await self.floats(172,1) # total
             self.cur_total = abs(val[0]) - self.last_total
+            logger.debug("%s: amp %f watt %f va %f",self.name, self.amp[0],self.watt[0],self.VA[0])
             self.signal.send(self)
-
-            try:
-                await asyncio.wait_for(self.trigger.wait(), cfg.get('interval' if self.in_use else 'idle',1))
-            except asyncio.TimeoutError:
-                pass
-            else:
-                self.trigger.clear()
 
     def used(self):
         self.in_use = True

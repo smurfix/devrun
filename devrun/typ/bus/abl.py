@@ -74,6 +74,7 @@ as it exits when the client terminates.
     async def run(self):
         logger.info("Start: %s",self.name)
         self.q = asyncio.Queue()
+        self.connected = asyncio.Event(loop=self.cmd.loop)
 
         try:
             cfg = self.loc.get('config',{})
@@ -94,7 +95,7 @@ as it exits when the client terminates.
 
             await self.cmd.loop.create_connection(lambda:EvcProtocol(self), host,port)
 
-        assert self.proto is not None
+        await self.connected.wait()
         # ensure that line noise doesn't block anything
         await asyncio.sleep(0.5)
         self.proto.transport.write(b'XXX\r\n')
@@ -102,15 +103,15 @@ as it exits when the client terminates.
         logger.info("Running: %s",self.name)
         self.cmd.reg.bus[self.name] = self
 
-        while True:
+        while self.connected.is_set():
             d,f = await self.q.get()
             if d is None:
                 break
-            self.req = Future()
+            self.req = asyncio.Future(loop=self.cmd.loop)
             self.req_msg = d
             self.proto.send(d)
             try:
-                res = await wait_for(self.req, 0.5)
+                res = await asyncio.wait_for(self.req, 0.5, loop=self.cmd.loop)
             except Exception as exc:
                 f.set_exception(exc)
             except BaseException as exc:
@@ -124,6 +125,10 @@ as it exits when the client terminates.
 
         logger.info("Stop: %s",self.name)
         self.proto.transport.close()
+
+    def start(self,proto):
+        self.proto = proto
+        self.connected.set()
 
     def stop(self):
         logger.info("Stopping: %s",self.name)
@@ -148,7 +153,7 @@ as it exits when the client terminates.
 
     async def do_request(self,d):
         assert isinstance(d,Request)
-        f = Future()
+        f = asyncio.Future(loop=self.cmd.loop)
         await self.q.put((d,f))
         try:
             res = await f

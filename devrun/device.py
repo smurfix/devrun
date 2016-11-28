@@ -70,8 +70,9 @@ class Registry:
                 reg.done()
 
         """
-    def __init__(self):
+    def __init__(self, loop):
         self.reg = {}
+        self.loop = loop
 
     def __getattr__(self,k):
         if k.startswith('_'):
@@ -79,7 +80,7 @@ class Registry:
         try:
             return self.reg[k]
         except KeyError:
-            res = self.reg[k] = _SubReg(k)
+            res = self.reg[k] = _SubReg(k,self.loop)
             return res
 
     def __iter__(self):
@@ -100,8 +101,9 @@ class Registry:
         return n
 
 class _SubReg:
-    def __init__(self,name):
+    def __init__(self,name,loop):
         self.name = name
+        self.loop = loop
         self.reg = {}
 
     def __getitem__(self,k):
@@ -126,7 +128,7 @@ class _SubReg:
     async def get(self,k):
         f = self.reg.get(k,None)
         if f is None:
-            f = self.reg[k] = asyncio.Future()
+            f = self.reg[k] = asyncio.Future(loop=self.loop)
         elif isinstance(f,asyncio.Future):
             pass
         else:

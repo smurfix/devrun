@@ -35,7 +35,7 @@ or to a remote modbus gateway.
     proto = None
 
     async def run(self):
-        self.end = asyncio.Event()
+        self.end = asyncio.Event(loop=self.cmd.loop)
         logger.info("Start: %s",self.name)
 
         try:

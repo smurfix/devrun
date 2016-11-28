@@ -15,8 +15,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Run(Main):
-    def __init__(self,cmd,args):
-        super().__init__()
+    def __init__(self,cmd,args, loop=None):
+        super().__init__(loop=loop)
         self.cmd = cmd
         self.args = args
     async def at_start(self):
@@ -48,7 +48,7 @@ def main():
     opt = p.parse_args()
     opt.loop = asyncio.get_event_loop()
     c = cmd[opt.mode](opt)
-    r = Run(c,opt.args)
+    r = Run(c,opt.args, loop=opt.loop)
     try:
         r.run()
     except asyncio.CancelledError:

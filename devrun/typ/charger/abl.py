@@ -35,7 +35,7 @@ This module interfaces to an ABL Sursum-style charger.
 
     async def run(self):
         self.charging = False
-        self.trigger = asyncio.Event()
+        self.trigger = asyncio.Event(loop=self.cmd.loop)
 
         cfg = self.loc.get('config',{})
         mode = cfg.get('mode','auto')
@@ -89,7 +89,7 @@ This module interfaces to an ABL Sursum-style charger.
                 await self.query(RT.set_pwm, self.A*fADC)
 
             try:
-                await asyncio.timeout(cfg.get('interval',1), self.trigger.wait())
+                await asyncio.wait_for(self.trigger.wait(), cfg.get('interval',1), loop=self.cmd.loop)
             except asyncio.TimeoutError:
                 pass
             else:

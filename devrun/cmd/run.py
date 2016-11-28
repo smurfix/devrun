@@ -35,8 +35,7 @@ run
             print("Usage: run", file=sys.stderr)
             return 1
         self.cls = {}
-        self.loop = asyncio.get_event_loop()
-        self.endit = asyncio.Event()
+        self.endit = asyncio.Event(loop=self.loop)
         def ended(f):
             try:
                 exc = f.result()

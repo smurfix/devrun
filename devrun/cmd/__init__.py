@@ -41,7 +41,7 @@ class BaseCommand:
     def __init__(self, opt):
         self.opt = opt
         self.loop = opt.loop
-        self.reg = Registry()
+        self.reg = Registry(self.loop)
         if getattr(self,'cfg',None) is None:
             self.cfg = load_cfg(opt.config)
         self.loop.call_later(10,self.reg.done)
