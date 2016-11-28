@@ -93,13 +93,6 @@ This module interfaces to an SDM630 power meter via Modbus.
             logger.debug("%s: amp %f watt %f va %f",self.name, self.amp[0],self.watt[0],self.VA[0])
             self.signal.send(self)
 
-    def used(self):
-        self.in_use = True
-        self.trigger.set()
-        
-    def unused(self):
-        self.in_use = False
-        
 Device.register("config","bus", cls=str, doc="Bus to connect to")
 Device.register("config","address", cls=int, doc="This charger's address on the bus")
 Device.register("config","power", cls=str, doc="Power supply to use")
