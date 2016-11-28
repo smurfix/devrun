@@ -18,110 +18,110 @@ from devrun.support import rev
 fADC = 0.017
 
 class RO(rev):
-	"EVCC output bits"
-	X1 = 0
-	X2 = 1
-	K1 = 2
-	K2 = 3
-	K3 = 4
-	CPpos = 5 # +12V
-	CPneg = 6 # .12V
-	
+    "EVCC output bits"
+    X1 = 0
+    X2 = 1
+    K1 = 2
+    K2 = 3
+    K3 = 4
+    CPpos = 5 # +12V
+    CPneg = 6 # .12V
+    
 class RI(rev):
-	"EVCC input bits"
-	E1 = 0
-	E2 = 1
+    "EVCC input bits"
+    E1 = 0
+    E2 = 1
 
 class RP(rev):
-	"PWM control values"
-	A6 = 0
-	A10 = 1
-	A13 = 2
-	A16 = 3
-	A20 = 4
-	A30 = 5
-	A32 = 6
-	A63 = 7
-	A70 = 8
-	A80 = 9
-	default = 10
-	min = 80
-	max = 970
-	not_allowed = 999
+    "PWM control values"
+    A6 = 0
+    A10 = 1
+    A13 = 2
+    A16 = 3
+    A20 = 4
+    A30 = 5
+    A32 = 6
+    A63 = 7
+    A70 = 8
+    A80 = 9
+    default = 10
+    min = 80
+    max = 970
+    not_allowed = 999
 
 class RT(rev):
-	"EVCC commmands"
-	# b == RT.reset_b
-	reset = 0
+    "EVCC commmands"
+    # b == RT.reset_b
+    reset = 0
 
-	# returns version string
-	firmware_version = 1
+    # returns version string
+    firmware_version = 1
 
-	# RM
-	state = 2
-	
-	set_manual = 3
+    # RM
+    state = 2
+    
+    set_manual = 3
 
-	# bits: RO
-	output = 4
-	set_output = 5
-	clear_output = 6
+    # bits: RO
+    output = 4
+    set_output = 5
+    clear_output = 6
 
-	# voltage is result times fADC
-	adc_cp_pos = 7
-	adc_cp_neg = 8
-	adc_cs = 9
+    # voltage is result times fADC
+    adc_cp_pos = 7
+    adc_cp_neg = 8
+    adc_cs = 9
 
-	# bits: RI
-	input = 10
+    # bits: RI
+    input = 10
 
-	# Values: RP
-	pwm = 11
-	set_pwm = 12
+    # Values: RP
+    pwm = 11
+    set_pwm = 12
 
-	pwm_on = 13
-	pwm_off = 14
+    pwm_on = 13
+    pwm_off = 14
 
-	# Values: RP
-	set_pwm_default = 15
+    # Values: RP
+    set_pwm_default = 15
 
-	set_vent = 16 # b=111x
-	vent = 17
+    set_vent = 16 # b=111x
+    vent = 17
 
-	set_addr = 22 # b=111x
-	addr = 23
-	firmware_reset = 24 # b=reset_b; result will be >01
+    set_addr = 22 # b=111x
+    addr = 23
+    firmware_reset = 24 # b=reset_b; result will be >01
 
-	stop_charge = 25
-	set_auto = 25
+    stop_charge = 25
+    set_auto = 25
 
-	pwm_default = 26
+    pwm_default = 26
 
-	# device is available but doesn't (yet) charge
-	set_break = 27
-	clear_break = 28
-	break = 29
+    # device is available but doesn't (yet) charge
+    set_break = 27
+    clear_break = 28
+    break = 29
 
-	# device is unavailable
-	enter_Ax = 30
-	leave_Ax = 30
+    # device is unavailable
+    enter_Ax = 30
+    leave_Ax = 30
 
-	reset_b = 1111
+    reset_b = 1111
 
 class RM(rev):
-	A = 0
-	B2 = 4
-	C = 5
-	D = 6
-	Bx = 9
-	B1 = 13
-	Ax = 17
-	firstErr = 32
-	Err_CS = 33
-	Err_AV = 35
-	Err_Locker = 37
-	Err_verification = 39
-	manual = 255
+    A = 0
+    B2 = 4
+    C = 5
+    D = 6
+    Bx = 9
+    B1 = 13
+    Ax = 17
+    firstErr = 32
+    Err_CS = 33
+    Err_AV = 35
+    Err_Locker = 37
+    Err_verification = 39
+    manual = 255
 
 class ReqReply:
     """encapsulate a request/reply exchanged while talking to the evc"""

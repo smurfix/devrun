@@ -25,50 +25,50 @@ class Device(BaseDevice):
 This module interfaces to an ABL Sursum-style charger.
 """
 
-	async def query(self,func,b=None):
-		return (await self.bus.query(self.adr,func,b))
+    async def query(self,func,b=None):
+        return (await self.bus.query(self.adr,func,b))
 
     async def run(self):
         cfg = self.loc.get('config',{})
-		mode = cfg.get('mode','auto')
-		if mode == "manual":
-			await self.run_manual(cfg)
-			return
+        mode = cfg.get('mode','auto')
+        if mode == "manual":
+            await self.run_manual(cfg)
+            return
 
-		if mode != "auto":
-			raise ConfigError("Mode needs to be 'auto' or 'manual'")
+        if mode != "auto":
+            raise ConfigError("Mode needs to be 'auto' or 'manual'")
 
-		### auto mode
-		self.bus = self.cmd.reg.bus.get(cfg['bus'])
-		self.power = self.cmd.reg.bus.get(cfg['power'])
-		self.meter = self.cmd.reg.bus.get(cfg['meter'])
-		self.adr = cfg['address']
-		self.A_max = cfg.get('A_max',32)
+        ### auto mode
+        self.bus = self.cmd.reg.bus.get(cfg['bus'])
+        self.power = self.cmd.reg.bus.get(cfg['power'])
+        self.meter = self.cmd.reg.bus.get(cfg['meter'])
+        self.adr = cfg['address']
+        self.A_max = cfg.get('A_max',32)
 
-		while True:
-			mode = await self.query(RT.state)
-			if mode == RM.manual:
-				await self.query(RT.set_auto)
-			if mode > RT.firstErr:
-				raise RuntimeError("Charger %s: error %s", self.name,RT[mode])
-			avail = self.power.available(self.name)
-			limited = await self.query(RT.break)
-			if limited:
-				await self.query(RT.clear_break)
-				if avail >= 6:
-					await self.query(RT.set_pwm, avail*fADC)
-			else:
-				if avail < 6:
-					await self.query(RT.set_break)
+        while True:
+            mode = await self.query(RT.state)
+            if mode == RM.manual:
+                await self.query(RT.set_auto)
+            if mode > RT.firstErr:
+                raise RuntimeError("Charger %s: error %s", self.name,RT[mode])
+            avail = self.power.available(self.name)
+            limited = await self.query(RT.break)
+            if limited:
+                await self.query(RT.clear_break)
+                if avail >= 6:
+                    await self.query(RT.set_pwm, avail*fADC)
+            else:
+                if avail < 6:
+                    await self.query(RT.set_break)
 
 
-			mode = await self.query(RT.state)
-			if mode == RM.manual:
-				raise RuntimeError("mode is set to manual??")
+            mode = await self.query(RT.state)
+            if mode == RM.manual:
+                raise RuntimeError("mode is set to manual??")
 
-			
-	async def run_manual(self):
-		raise NotImplementedError("Don't know how to do it manually yet")
+            
+    async def run_manual(self):
+        raise NotImplementedError("Don't know how to do it manually yet")
 
 Device.register("config","mode", cls=str, doc="Operating mode (auto or
 manual)")

@@ -155,13 +155,13 @@ as it exits when the client terminates.
             res = None
         return res
 
-	async def query(adr,func,b=None):
-		req = Request(adr,func,b)
-		res = await self.do_request(req)
-		try:
-			return int(res.b)
-		except TypeError:
-			return res.b
+    async def query(adr,func,b=None):
+        req = Request(adr,func,b)
+        res = await self.do_request(req)
+        try:
+            return int(res.b)
+        except TypeError:
+            return res.b
 
 Device.register("config","host", cls=str, doc="Host[:port] to connect to, or /dev/serial")
 
