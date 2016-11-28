@@ -114,12 +114,15 @@ as it exits when the client terminates.
             try:
                 res = await asyncio.wait_for(self.req, 0.5, loop=self.cmd.loop)
             except Exception as exc:
-                f.set_exception(exc)
+                if not f.done():
+                    f.set_exception(exc)
             except BaseException as exc:
-                f.set_exception(exc)
+                if not f.done():
+                    f.set_exception(exc)
                 raise
             else:
-                f.set_result(res)
+                if not f.done():
+                    f.set_result(res)
             finally:
                 self.req = None
                 self.req_msg = None
