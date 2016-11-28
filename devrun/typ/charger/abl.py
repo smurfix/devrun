@@ -88,7 +88,7 @@ This module interfaces to an ABL Sursum-style charger.
                 raise RuntimeError("Charger %s: error %s", self.name,RM[mode])
 
             self.charging = (mode in RM.charging)
-            self.break = await self.query(RT.break)
+            self.brk = await self.query(RT.brk)
 
             a = await self.query(RT.input)
             b = await self.query(RT.output)
@@ -108,11 +108,11 @@ This module interfaces to an ABL Sursum-style charger.
             elif self.A < self.A_min:
                 if mode == RM.Ax:
                     await self.query(RT.leave_Ax)
-                elif not self.break:
-                    await self.query(RT.set_break)
+                elif not self.brk:
+                    await self.query(RT.set_brk)
             else:
-                if self.break:
-                    await self.query(RT.clear_break)
+                if self.brk:
+                    await self.query(RT.clear_brk)
                 await self.query(RT.set_pwm, pwm(self.A))
 
             try:
