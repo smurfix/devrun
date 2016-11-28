@@ -89,8 +89,6 @@ current.
     def has_values(self, obj):
         assert obj.name in self.chargers
         self.update_available()
-        for k in self.chargers.values():
-            k.update_available()
 
     def register_charger(self, obj):
         self.q.put_nowait(('reg',obj))
@@ -98,7 +96,7 @@ current.
     async def run(self):
         cfg = self.loc.get('config',{})
         self.A_max = cfg['A_max']
-        chargers = {}
+        self.chargers = {}
         self.q = asyncio.Queue()
         self.cmd.reg.power[self.name] = self
         logger.info("Start: %s",self.name)
@@ -106,8 +104,8 @@ current.
         while True:
             cmd,obj = await self.q.get()
             if cmd == 'reg':
-                chargers[obj.name] = obj
                 logger.debug("Reg: charger %s",obj.name)
+                self.chargers[obj.name] = obj
                 obj.signal.connect(self.has_values)
 
 Device.register("config","A_max", cls=float, doc="Maximum allowed current")
