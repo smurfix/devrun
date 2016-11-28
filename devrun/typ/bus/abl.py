@@ -142,8 +142,6 @@ as it exits when the client terminates.
         else:
             if r.nr == d.nr and r.a == d.a:
                 self.req.set_result(d)
-                if mon:
-                    mon.write(d)
             else:
                 self.req.set_exception(NoData(r.nr))
             return
