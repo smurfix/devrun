@@ -55,9 +55,9 @@ class EvcProtocol(asyncio.Protocol):
         self.parent.stop()
 
 class Device(BaseDevice):
-    """EVC link"""
+    """ABL link"""
     help = """\
-This is a link to EV chargers by ABL Sursum.
+This is a link to EV charge controllers by ABL Sursum.
 They have a half-duplex RS485 interface.
 
 You can connect to a local serial interface,

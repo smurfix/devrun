@@ -32,7 +32,7 @@ chargers for electric cars would be
                     xxx
         bus
             s123
-                type: evclink
+                type: abl
                 config
                     remote: host2:50485
                     local: /dev/rs485-1
