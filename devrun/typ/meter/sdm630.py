@@ -16,6 +16,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 import asyncio
 import sys
 import blinker
+import struct
 
 from . import BaseDevice
 from devrun.support.abl import RT,Request,Reply
@@ -32,8 +33,14 @@ This module interfaces to an SDM630 power meter via Modbus.
     async def query(self,func,b=None):
         return (await self.bus.query(self.adr,func,b))
 
-    async def floats(self, start,len):
-        rr = self.bus.read_input_registers(start*2-2,len*2, unit=self.adr)
+    async def floats(self, start,count):
+        rr = await self.bus.read_input_registers(start*2-2,count*2, unit=self.adr)
+        try:
+            n = len(rr.registers)
+        except AttributeError:
+            import pdb;pdb.set_trace()
+            raise
+        return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
 
     async def run(self):
         self.signal = blinker.signal(self.name)
