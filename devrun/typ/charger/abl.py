@@ -95,6 +95,7 @@ This module interfaces to an ABL Sursum-style charger.
                 raise RuntimeError("mode is set to manual??")
             elif mode & RM.transient:
                 logger.warn("%s: transient %d",self.name,mode)
+                self.trigger.set()
             elif mode > RM.firstErr:
                 raise RuntimeError("Charger %s: error %s", self.name,RM[mode])
             else:
