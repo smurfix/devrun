@@ -34,6 +34,8 @@ class Run(Main):
         self.add_cleanup(self.job.cancel)
         self.add_cleanup(self.cmd.stop)
 
+LOG=[logging.ERROR,logging.WARNING,logging.INFO,logging.DEBUG]
+
 def main():
     p = parser()
     p.add_argument('mode', help='change what to do')
@@ -47,7 +49,7 @@ def main():
 
     opt = p.parse_args()
     opt.loop = asyncio.get_event_loop()
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=LOG[min(opt.verbose,len(LOG)-1)])
     logging.getLogger('pymodbus').addHandler(logging.NullHandler())
     logging.getLogger('pymodbus').propagate = False
 
