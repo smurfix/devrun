@@ -92,7 +92,7 @@ as it exits when the client terminates.
             if ':' in host:
                 host,port=host.split(':')
             else:
-                port = 50485
+                port = 20422
 
             await self.cmd.loop.create_connection(lambda:EvcProtocol(self), host,port)
 
