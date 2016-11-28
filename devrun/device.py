@@ -120,7 +120,8 @@ class _SubReg:
         if f is None:
             pass
         elif isinstance(f,asyncio.Future):
-            f.set_result(v)
+            if not f.done():
+                f.set_result(v)
         else:
             raise RuntimeError('already known',self.name,k,f)
         self.reg[k]=v
