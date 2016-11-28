@@ -52,14 +52,14 @@ This module interfaces to an ABL Sursum-style charger.
             if mode > RT.firstErr:
                 raise RuntimeError("Charger %s: error %s", self.name,RT[mode])
             avail = self.power.available(self.name)
-            limited = await self.query(RT.break)
+            limited = await self.query(RT.brk)
             if limited:
-                await self.query(RT.clear_break)
+                await self.query(RT.clear_brk)
                 if avail >= 6:
                     await self.query(RT.set_pwm, avail*fADC)
             else:
                 if avail < 6:
-                    await self.query(RT.set_break)
+                    await self.query(RT.set_brk)
 
 
             mode = await self.query(RT.state)

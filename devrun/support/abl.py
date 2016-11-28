@@ -98,9 +98,9 @@ class RT(rev):
     pwm_default = 26
 
     # device is available but doesn't (yet) charge
-    set_break = 27
-    clear_break = 28
-    break = 29
+    set_brk = 27
+    clear_brk = 28
+    brk = 29
 
     # device is unavailable
     enter_Ax = 30
