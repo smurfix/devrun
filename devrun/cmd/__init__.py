@@ -26,8 +26,8 @@ def parser(**kw):
     if 'formatter_class' not in kw:
         kw['formatter_class'] = argparse.RawDescriptionHelpFormatter
     res = argparse.ArgumentParser(**kw)
-    res.add_argument('-c', '--config', dest='config', default=os.environ.get('EVC_CONFIG','/etc/devrun.cfg'),
-                        help='configuration file. Default: EVC_CONFIG or /etc/devrun.cfg')
+    res.add_argument('-c', '--config', dest='config', default=os.environ.get('DEVRUN_CONFIG','/etc/devrun.cfg'),
+                        help='configuration file. Default: DEVRUN_CONFIG or /etc/devrun.cfg')
     res.add_argument('-v', '--verbose', dest='verbose', action='count', default=1,
                         help='increase chattiness')
     res.add_argument('-q', '--quiet', dest='verbose', action='store_const', const=0,
