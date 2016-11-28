@@ -44,6 +44,15 @@ This module interfaces to an ABL Sursum-style charger.
         self.A = A
         self.trigger.set()
 
+    async def kick_ax(self):
+        await asyncio.sleep(10,loop=self.cmd.loop)
+        logger.warn("%s: Turn on Ax", self.name)
+        await self.query(RT.enter_Ax)
+
+        await asyncio.sleep(5,loop=self.cmd.loop)
+        logger.warn("%s: Turn off Ax", self.name)
+        await self.query(RT.leave_Ax)
+
     async def run(self):
         logger.debug("%s: starting", self.name)
         self.charging = False
