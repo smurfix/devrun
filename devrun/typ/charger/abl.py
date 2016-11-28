@@ -64,6 +64,7 @@ This module interfaces to an ABL Sursum-style charger.
         self.power = await self.cmd.reg.power.get(cfg['power'])
         logger.debug("%s: got power %s", self.name,self.power.name)
         self.meter = await self.cmd.reg.meter.get(cfg['meter'])
+        self.signal = self.meter.signal
         logger.debug("%s: got meter %s", self.name,self.meter.name)
         self.adr = cfg['address']
         self.A_max = cfg.get('A_max',32)
