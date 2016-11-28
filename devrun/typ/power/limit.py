@@ -65,13 +65,16 @@ current.
 
         # sum requirements of idle stations
         for k in self.not_charging:
-            n_nc += k
+            n_nc += 1
             Aidle += k.A_min
         logger.info("max %.1f, min %.1f, wanted %.1f, delta %.1f, idle %.1f", Amax,Amin,Awanted,Adelta,Aidle)
 
         Aavail = self.A_max-Awanted
         if Aavail > Adelta:
             # we can assign max power to every station
+            for k in self.charging:
+                k.update_available(k.A_max)
+        else:
             pass
 
         if Aidle > self.A_max-Awanted:

@@ -67,6 +67,9 @@ This module interfaces to an SDM630 power meter via Modbus.
         self.bus = await self.cmd.reg.bus.get(cfg['bus'])
         self.adr = cfg['address']
         self.power = await self.cmd.reg.power.get(cfg['power'])
+        self.phase1 = cfg.get('phase_offset',0)
+        self.phase2 = (self.phase1+1)%3
+        self.phase3 = (self.phase2+1)%3
 
         val = await self.floats(172,1) # total
         self.last_total = abs(val[0])*1000
@@ -85,22 +88,22 @@ This module interfaces to an SDM630 power meter via Modbus.
             try:
                 val = await self.floats(4,15) # current,power,VA
 
-                self.amp[0] = abs(val[0])
-                self.amp[1] = abs(val[1])
-                self.amp[2] = abs(val[2])
+                self.amp[0] = abs(val[self.phase1])
+                self.amp[1] = abs(val[self.phase2])
+                self.amp[2] = abs(val[self.phase3])
                 self.amp_max = max(self.amp)
 
-                self.watt[0] = abs(val[3])
-                self.watt[1] = abs(val[4])
-                self.watt[2] = abs(val[5])
+                self.watt[0] = abs(val[3+self.phase1])
+                self.watt[1] = abs(val[3+self.phase2])
+                self.watt[2] = abs(val[3+self.phase3])
 
-                self.VA[0] = abs(val[6])
-                self.VA[1] = abs(val[7])
-                self.VA[2] = abs(val[8])
+                self.VA[0] = abs(val[6+self.phase1])
+                self.VA[1] = abs(val[6+self.phase2])
+                self.VA[2] = abs(val[6+self.phase3])
 
-                self.factor[0] = abs(val[12])
-                self.factor[1] = abs(val[13])
-                self.factor[2] = abs(val[14])
+                self.factor[0] = abs(val[12+self.phase1])
+                self.factor[1] = abs(val[12+self.phase2])
+                self.factor[2] = abs(val[12+self.phase3])
                 asum = sum(self.amp)
                 if asum == 0:
                     self.factor_avg = 1
@@ -128,4 +131,5 @@ Device.register("config","address", cls=int, doc="This charger's address on the 
 Device.register("config","power", cls=str, doc="Power supply to use")
 Device.register("config","interval", cls=float, doc="delay between measurements")
 Device.register("config","idle", cls=float, doc="delay between measurements when (not in use)")
+Device.register("config","offset", cls=int, doc="phase offset (0,1,2)")
 
