@@ -49,7 +49,7 @@ current.
             Amax += k.A_max
             Amin += k.A_min
             for n in (1,2,3):
-                Aused[n-1] += k.meter.amps[n]
+                Aused[n-1] += k.meter.amp[n]
             n_c += 1
         Aused = max(Aused)
 
