@@ -55,10 +55,11 @@ This module interfaces to an ABL Sursum-style charger.
         await self.query(RT.leave_Ax)
 
     _charging = False
-    charge_start = 0
-    charge_end = 0
-    charge_init = 0
-    charge_exit = 0
+    charge_start = 0 # EV connected, timestamp
+    charge_started = 0 # current started to flow, timestamp
+    charge_end = 0 # Charge stopped, timestamp
+    charge_init = 0 # meter at beginning, Wh
+    charge_exit = 0 # meter at end, Wh
     @property
     def charging(self):
         return self._charging
@@ -68,10 +69,13 @@ This module interfaces to an ABL Sursum-style charger.
             if not self._charging:
                 self.charge_start = time()
                 self.charge_init = self.meter.cur_total
+            if self.charge_started == 0 and self.meter.cur_total - self.charge_init >= self.threshold:
+                self.charge_started = time()
                 self._charging = True
         else:
             if self._charging:
                 self.charge_end = time()
+                self.charge_started = 0
                 self.charge_exit = self.meter.cur_total
                 self._charging = False
 
@@ -106,6 +110,7 @@ This module interfaces to an ABL Sursum-style charger.
         self.signal = self.meter.signal
         logger.debug("%s: got meter %s", self.name,self.meter.name)
         self.adr = cfg['address']
+        self.threshold = cfg.get('threshold',10)
         self.A_max = cfg.get('A_max',32)
         self.A_min = 6
         self.A = self.A_max
@@ -173,11 +178,12 @@ This module interfaces to an ABL Sursum-style charger.
     async def run_manual(self):
         raise NotImplementedError("Don't know how to do it manually yet")
 
-Device.register("config","mode", cls=str, doc="Operating mode (auto or manual)")
-Device.register("config","bus", cls=str, doc="Bus to connect to")
-Device.register("config","address", cls=int, doc="This charger's address on the bus")
-Device.register("config","meter", cls=str, doc="Power meter to use")
-Device.register("config","power", cls=str, doc="Power supply to use")
-Device.register("config","A_max", cls=float, doc="Maximum allowed current")
-Device.register("config","interval", cls=float, doc="time between checks")
+Device.register("config","mode", cls=str, doc="Operating mode (auto or manual), default auto")
+Device.register("config","bus", cls=str, doc="Bus to connect to, mandatory")
+Device.register("config","address", cls=int, doc="This charger's address on the bus, mandatory")
+Device.register("config","meter", cls=str, doc="Power meter to use, mandatory")
+Device.register("config","power", cls=str, doc="Power supply to use, mandatory")
+Device.register("config","A_max", cls=float, doc="Maximum allowed current mandatory")
+Device.register("config","interval", cls=float, doc="time between checks, default 1sec")
+Device.register("config","threshold", cls=float, doc="Wh for charging to have started, default 10")
 
