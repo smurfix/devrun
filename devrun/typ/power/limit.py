@@ -203,7 +203,7 @@ current.
 
     @property
     def chargers(self):
-        return self.chargers.values()
+        return self._chargers.values()
 
     async def run(self):
         cfg = self.loc.get('config',{})

@@ -36,6 +36,9 @@ class Device(BaseDevice):
     help = """\
 This module interfaces to an ABL Sursum-style charger.
 """
+    _charging = False
+    mode = None
+    _A = 0
 
     async def query(self,func,b=None):
         return (await self.bus.query(self.adr,func,b))
@@ -47,7 +50,8 @@ This module interfaces to an ABL Sursum-style charger.
     def A(self,value):
         logger.info("%s: avail %f => %f", self.name,self._A,value)
         assert value == 0 or value >= self.A_min
-        assert value <= self.A_min
+        assert value <= self.A_max
+        self._A = value
         self.trigger.set()
 
     async def kick_ax(self):
@@ -117,9 +121,7 @@ This module interfaces to an ABL Sursum-style charger.
 
     async def run(self):
         logger.debug("%s: starting", self.name)
-        self._charging = False
         self.trigger = asyncio.Event(loop=self.cmd.loop)
-        self.mode = None
 
         cfg = self.loc.get('config',{})
         mode = cfg.get('mode','auto')
