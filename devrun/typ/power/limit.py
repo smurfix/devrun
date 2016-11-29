@@ -41,35 +41,57 @@ current.
                 yield k
 
     def update_available(self):
-        Amax = 0 # if everybod charges maximally
-        Amin = 0 # if everybod charges minimally
+        ## TODO: consider the three phases separately
+
+        A_max = 0 # if everybod charges maximally
+        A_min = 0 # if everybod charges minimally
+        Aprio = 0 # unassigned capacity, priority
         Adelta = 0 # unassigned capacity
-        Awanted = [0,0,0] # sum of currents which the chargers would like to get
-        Aidle = 0 # requirements of idle statiosn
+        Aidle = 0 # requirements of idle stations
+        n_p = 0 # number of priority stations
         n_c = 0 # number of charging stations
         n_nc = 0 # number of non-charging stations
 
         # first, check current usage
         for k in self.charging:
-            Amax += k.A_max
-            Amin += k.A_min
-            Am = 0
-            for n in (0,1,2):
-                A = min(k.meter.amp[n]*self.headroom if k.charge_time > self.ramp_up else k.A_max, k.A)
-                Am = max(Am,A)
-                Awanted[n] += A
-            Adelta += k.A_max-Am
-            n_c += 1
-        Awanted = max(Awanted)
-        # Awanted is the current 
+            A_max += k.A_max
+            A_min += k.A_min
+            if k.charge_time <= self.ramp_up:
+                Am = k.A_max
+                Aprio += Am-k.A_min
+                n_p += 1
+            else:
+                Am = k.A_min
+                for n in (0,1,2):
+                    A = min(k.meter.amp[n]*self.headroom, k.A_max)
+                    Am = max(Am,A)
+                Adelta += Am-k.A_min
+                n_c += 1
 
         # sum requirements of idle stations
         for k in self.not_charging:
             n_nc += 1
             Aidle += k.A_min
-        logger.info("max %.1f, min %.1f, wanted %.1f, delta %.1f, idle %.1f", Amax,Amin,Awanted,Adelta,Aidle)
+        logger.info("max %.1f, min %.1f, delta %.1f, idle %.1f", A_max,A_min,Adelta,Aidle)
 
-        Aavail = self.A_max-Awanted
+        # Emergency: we can't even handle all charging stations
+        if A_min > self.A_max:
+            for k in sorted(self.charging, key=lambda x:-x.meter.amps):
+                if A_min > k.A_min:
+                    A_min -= k.A_min
+                    k.update_available(k.A_min)
+                else:
+                    k.update_available(0)
+            for k in self.not_charging:
+                k.update_available(0)
+            return
+
+        for k in self.charging:
+            k.update_available(max(k.A_min,min(k.A_max,k.meter.amp[n]*self.headroom)))
+        for k in self.not_charging:
+            k.update_available(k.A_min)
+        return
+        Aavail = self.A_max
         if Aavail > Adelta:
             # we can assign max power to every station
             for k in self.charging:
@@ -77,7 +99,7 @@ current.
         else:
             pass
 
-        if Aidle > self.A_max-Awanted:
+        if Aidle > self.A_max:
             # we can give all idle stations enough for min power
             pass
         else:
@@ -85,11 +107,11 @@ current.
 
         if n_c == 0:
             Afree = self.A_max
-        elif Amax <= self.A_max:
+        elif A_max <= self.A_max:
             for k in self.charging:
                 k.update_available(k.A_max)
-            Afree = self.A_max - Amax
-        elif Amin >= self.A_max:
+            Afree = self.A_max - A_max
+        elif A_min >= self.A_max:
             # OWCH
             Acom = self.A_max
             for k in self.charging:
@@ -100,7 +122,7 @@ current.
                     k.update_available(0)
             Afree = 0
         else: # distribute
-            f=self.A_max/Amax
+            f=self.A_max/A_max
             assert f<1
             for k in self.charging:
                 k.update_available(k.A_max*f)
