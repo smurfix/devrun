@@ -128,7 +128,7 @@ class RM:
     Err_verification = 39
     transient = 64
     manual = 255
-    charging = {B2,C,D}
+    charging = {B2,C,D,Bx}
 
 class ReqReply:
     """encapsulate a request/reply exchanged while talking to the evc"""
