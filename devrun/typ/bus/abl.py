@@ -149,10 +149,6 @@ as it exits when the client terminates.
                 self.req.set_exception(NoData(r.nr))
             return
 
-        self.processor.main.write(d)
-        if mon:
-            mon.write(d)
-
     async def do_request(self,d):
         assert isinstance(d,Request)
         f = asyncio.Future(loop=self.cmd.loop)
