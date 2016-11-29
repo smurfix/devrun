@@ -121,7 +121,7 @@ class RM:
     Bx = 9
     B1 = 13
     Ax = 17
-    firstErr = 32
+    error = 32
     Err_CS = 33
     Err_AV = 35
     Err_Locker = 37

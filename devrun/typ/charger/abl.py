@@ -133,7 +133,7 @@ This module interfaces to an ABL Sursum-style charger.
             elif mode & RM.transient:
                 logger.warn("%s: transient %d",self.name,mode)
                 self.trigger.set()
-            elif mode > RM.firstErr:
+            elif mode & RM.error:
                 raise RuntimeError("Charger %s: error %s", self.name,RM[mode])
             else:
                 self.charging = (mode in RM.charging)
