@@ -87,7 +87,7 @@ current.
             return
 
         for k in self.charging:
-            k.update_available(max(k.A_min,min(k.A_max,k.meter.amp[n]*self.headroom)))
+            k.update_available(max(k.A_min,min(k.A_max,k.meter.amp_max*self.headroom)))
         for k in self.not_charging:
             k.update_available(k.A_min)
         return

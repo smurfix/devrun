@@ -20,21 +20,30 @@ from devrun.typ.power.limit import Device
 class FakeCharger(object):
     def __init__(self, params):
         if 't' in params:
-            self.charge_time = params.pop('t')
+            self.charge_time = params['t']
         if 'meter' in params:
-            self.meter = FakeMeter(params.pop('meter'))
-        self.__dict__.update(params)
+            self.meter = FakeMeter(params['meter'])
         self.params = params
 
     def update_available(self, a):
         self.params['a'] = a
+    @property
+    def A_max(self):
+        return self.params['A_max']
+    @property
+    def A_min(self):
+        return self.params['A_min']
 
 class FakeMeter(object):
     def __init__(self, val):
         if isinstance(val,tuple):
             self.amp = val
+            self.amp_max = max(val)
+            self.amps = sum(val)
         else:
             self.amp = (val,)*3
+            self.amp_max = val
+            self.amps = 3*val
 
 class FakeDevice(object):
     run = Device.update_available
