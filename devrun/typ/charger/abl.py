@@ -40,9 +40,14 @@ This module interfaces to an ABL Sursum-style charger.
     async def query(self,func,b=None):
         return (await self.bus.query(self.adr,func,b))
 
-    def update_available(self,A):
-        logger.info("%s: avail %f => %f", self.name,self.A,A)
-        self.A = A
+    @property
+    def A(self):
+        return self._A
+    @A.setter
+    def A(self,value):
+        logger.info("%s: avail %f => %f", self.name,self._A,value)
+        assert value == 0 or value >= self.A_min
+        assert value <= self.A_min
         self.trigger.set()
 
     async def kick_ax(self):
@@ -62,35 +67,59 @@ This module interfaces to an ABL Sursum-style charger.
     charge_exit = 0 # meter at end, Wh
     @property
     def charging(self):
-        return self._charging
+        return self._charging > 1
+    @property
+    def want_charging(self):
+        return self._charging == 1
+    @want_charging.setter
+    def want_charging(self, val):
+        if val and not self._charging:
+            self.charge_start = t = time()
+            self.charge_init = self.meter.cur_total
+            self._charging = 1
+
     @charging.setter
     def charging(self,val):
         if val:
-            if not self._charging:
-                self.charge_start = time()
-                self.charge_init = self.meter.cur_total
-            if self.charge_started == 0 and self.meter.cur_total - self.charge_init >= self.threshold:
+            if self._charging < 2:
+                if not self._charging:
+                    self.want_charging = True
                 self.charge_started = time()
-                self._charging = True
+                self._charging = 2
         else:
             if self._charging:
                 self.charge_end = time()
                 self.charge_started = 0
                 self.charge_exit = self.meter.cur_total
-                self._charging = False
+                self._charging = 0
 
     @property
     def charge_time(self):
-        return (time() if self._charging else self.charge_end)-self.charge_start
+        return (time() if self._charging else self.charge_end) - (self.charge_started or self.charge_start)
     @property
     def charge_amount(self):
-        return (self.meter.cur_total if self._charging else self.charge_exit)-self.charge_init
+        return (self.meter.cur_total if self._charging else self.charge_exit) - self.charge_init
 
+    async def get_mode(self):
+        mode = await self.query(RT.state)
+        if self.mode is not None and mode == self.mode:
+            return mode
+        while True:
+            await asyncio.sleep(0.1,loop=self.cmd.loop)
+            mode2 = await self.query(RT.state)
+            if mode2 & RM.transient:
+                logger.warn("%s: transient %d",self.name,mode)
+                continue
+            if mode == mode2:
+                return mode
+            logger.warn("%s: modes %d %d",self.name,mode,mode2)
+            mode = mode2
 
     async def run(self):
         logger.debug("%s: starting", self.name)
         self._charging = False
         self.trigger = asyncio.Event(loop=self.cmd.loop)
+        self.mode = None
 
         cfg = self.loc.get('config',{})
         mode = cfg.get('mode','auto')
@@ -113,35 +142,30 @@ This module interfaces to an ABL Sursum-style charger.
         self.threshold = cfg.get('threshold',10)
         self.A_max = cfg.get('A_max',32)
         self.A_min = 6
-        self.A = self.A_max
+        self.A = self.A_min
         self.power.register_charger(self)
         self.cmd.reg.charger[self.name] = self
 
-        mode = await self.query(RT.state)
-        logger.debug("%s: got mode %s", self.name,RM[mode])
+        self.mode = await self.get_mode()
+        logger.debug("%s: got mode %s", self.name,RM[self.mode])
 
-        if mode == RM.manual:
+        if self.mode == RM.manual:
             await self.query(RT.set_auto)
 
         logger.info("Start: %s",self.name)
         while True:
-            while True:
-                mode = await self.query(RT.state)
-                await asyncio.sleep(0.1,loop=self.cmd.loop)
-                mode2 = await self.query(RT.state)
-                if mode == mode2:
-                    break
-                logger.warn("%s: modes %d %d",self.name,mode,mode2)
-
-            if mode == RM.manual:
+            self.mode = await self.get_mode()
+            if self.mode == RM.manual:
                 raise RuntimeError("mode is set to manual??")
-            elif mode & RM.transient:
-                logger.warn("%s: transient %d",self.name,mode)
-                self.trigger.set()
-            elif mode & RM.error:
-                raise RuntimeError("Charger %s: error %s", self.name,RM[mode])
+            elif self.mode & RM.error:
+                raise RuntimeError("Charger %s: error %s", self.name,RM[self.mode])
             else:
-                self.charging = (mode in RM.charging)
+                if self.mode in RM.charging:
+                    self.charging = True
+                elif self.mode in RM.want_charging:
+                    self.want_charging = True
+                else:
+                    self.charging = False
                 self.brk = await self.query(RT.brk)
 
                 a = await self.query(RT.input)
@@ -149,24 +173,20 @@ This module interfaces to an ABL Sursum-style charger.
                 c = await self.query(RT.adc_cp_pos)*fADC
                 d = await self.query(RT.adc_cp_neg)*fADC
                 e = await self.query(RT.adc_cs)*12/1023
-                logger.info("M %s I %x O %x + %.02f - %.02f CS %.02f, power %.02f, ch %s brk %s, ch %.01f %.1f",RM[mode],a,b,c,d,e, self.A, 'Y' if self.charging else 'N', 'Y' if self.brk else 'N', self.charge_time,self.charge_amount)
+                logger.info("M %s I %x O %x + %.02f - %.02f CS %.02f, power %.02f, ch %s brk %s, ch %.01f %.1f",RM[self.mode],a,b,c,d,e, self.A, 'Y' if self.charging else 'N', 'Y' if self.brk else 'N', self.charge_time,self.charge_amount)
 
-                if self.charging:
-                    if self.A < self.A_min:
+                if self.A < self.A_min:
+                    if self.charging:
                         logger.warn("%s: min power %f %f",self.name,self.A,self.A_min)
                         await self.query(RT.enter_Ax)
-                    else:
-                        await self.query(RT.set_pwm, pwm(self.A))
-                # not charging
-                elif self.A < self.A_min:
                     if not self.brk:
                         await self.query(RT.set_brk)
-                    if mode == RM.Ax:
-                        await self.query(RT.leave_Ax)
                 else:
+                    await self.query(RT.set_pwm, pwm(self.A))
                     if self.brk:
                         await self.query(RT.clear_brk)
-                    await self.query(RT.set_pwm, pwm(self.A))
+                    if self.mode == RM.Ax:
+                        await self.query(RT.leave_Ax)
 
             try:
                 await asyncio.wait_for(self.trigger.wait(), cfg.get('interval',1), loop=self.cmd.loop)
@@ -185,5 +205,6 @@ Device.register("config","meter", cls=str, doc="Power meter to use, mandatory")
 Device.register("config","power", cls=str, doc="Power supply to use, mandatory")
 Device.register("config","A_max", cls=float, doc="Maximum allowed current mandatory")
 Device.register("config","interval", cls=float, doc="time between checks, default 1sec")
-Device.register("config","threshold", cls=float, doc="Wh for charging to have started, default 10")
+Device.register("config","thresh_wh", cls=float, doc="Wh for charging to have started, default 10")
+Device.register("config","thresh_t", cls=float, doc="Timeout for charging to have started, default 30")
 
