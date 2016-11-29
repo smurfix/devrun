@@ -146,7 +146,7 @@ current.
 
         # We have this much current, total
         Aavail = self.A_max
-        print()
+        #print()
 
         # Clear the power assigned to the chargers
         for k in self.chargers:
@@ -164,11 +164,11 @@ current.
                 A = p.requires(k,Aavail)-k.__assigned
                 if A > 0:
                     Ahere += A
-                    print("req",k,Aavail,'=',A)
+                    #print("req",k,Aavail,'=',A)
             
             # check how much chargers actually do use, given the factor
             Aassigned = 0
-            print("f",p.__class__.__name__,Aavail,Ahere)
+            #print("f",p.__class__.__name__,Aavail,Ahere)
             if Aavail < Ahere:
                 f = Aavail/Ahere # less than 100% available
             else:
@@ -177,7 +177,7 @@ current.
                 if not p.applies(k,Aavail):
                     continue
                 A = p.set(k,Aavail,f,k.__assigned)
-                print("set",k,"from",k.__assigned,"with",Aavail,f,'=',A)
+                #print("set",k,"from",k.__assigned,"with",Aavail,f,'=',A)
                 if A > k.__assigned:
                     A -= k.__assigned
                     if A > Aavail:
