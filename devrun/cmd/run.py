@@ -17,6 +17,7 @@ import sys
 import asyncio
 from traceback import print_exc
 from collections.abc import Mapping
+from qbroker.unit import CC_DICT
 
 from . import BaseCommand
 from devrun.util import objects, import_string
@@ -63,6 +64,33 @@ run
                 gg = g[name] = (d,j)
 
         await self.endit.wait()
+
+    async def start(self):
+        await super().start()
+        if self.amqp is None:
+            return
+        await self.amqp.register_rpc_async('info',self.rpc_info, call_conv=CC_DICT)
+
+    async def rpc_info(self, _subsys=None, _dev=None, **ak):
+        if _subsys is None:
+            assert _dev is None
+            res = {}
+            for k,n,t in self.reg.types:
+                res[k] = {'n':n,'doc':t.__doc__,'help':t.help}
+        elif _dev is None:
+            res = {}
+            for k,v in getattr(self.reg,_subsys).items():
+                if isinstance(v,asyncio.Future):
+                    if not v.done():
+                        res[k] = {'type':'Future','state':repr(v)}
+                        continue
+                    else:
+                        v = v.result()
+                res[k] = v.state
+        else:
+            v = await getattr(self.reg,_subsys).get(_dev)
+            res = {'data':v.loc,'state':v.state}
+        return res
 
     async def stop(self):
         for cls in self.cls.values():

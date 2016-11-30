@@ -32,6 +32,7 @@ It prints 'Ping from ‹name›' every second, or however often you set it to.
         if w is not None:
             dev = await self.cmd.reg.test.get(w)
             n = 1
+            self.cmd.reg.test[self.name] = self
             while True:
                 await dev.q.put((self.name,n))
                 print("Pling sent ",n)

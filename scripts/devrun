@@ -20,6 +20,7 @@ class Run(Main):
         self.cmd = cmd
         self.args = args
     async def at_start(self):
+        await self.cmd.start()
         self.job = asyncio.ensure_future(self.cmd.run(*self.args))
         def done(j):
             self.stop()

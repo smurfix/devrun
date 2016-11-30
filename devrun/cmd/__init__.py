@@ -17,7 +17,8 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import argparse
 import os
-import qbroker
+from qbroker.unit import make_unit as make_qbroker
+from collections.abc import Mapping
 
 from devrun.util import import_string, load_cfg
 from devrun.device import Registry
@@ -37,20 +38,33 @@ def parser(**kw):
 class BaseCommand:
     help = None
     cfg = None
+    amqp = None
+    name = None
+
     def __init__(self, opt):
         self.opt = opt
         self.reg = Registry()
         if getattr(self,'cfg',None) is None:
             self.cfg = load_cfg(opt.config)
+        if isinstance(self.cfg,Mapping):
+            self.name = self.cfg.get('global',{}).get('name',None)
+        if self.name is None:
+            self.name = os.path.splitext(os.path.basename(opt.config))[0]
+        self.cmdname = self.__module__.rsplit('.',1)[1]
 
-    async def setup(self):
-        if getattr(self,'amqp',None) is None:
-            self.amqp = await qbroker.make_conn
-        
+    async def start(self):
+        if not isinstance(self.cfg,Mapping):
+            return
+        cfg = self.cfg.get('config',{})
+        if 'amqp' in cfg:
+            self.amqp = await make_qbroker(self.name if self.cmdname == 'run' else '%s.%s'%(self.name,self.cmdname), amqp=cfg['amqp'])
+    
     async def run(self):
         raise NotImplementedError("You need to override .run()")
+
     async def stop(self):
-        pass
+        if self.amqp is not None:
+            await self.amqp.stop()
 
 class cmd:
     def __getitem__(self, name):
