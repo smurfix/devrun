@@ -33,7 +33,6 @@ type ‹group› ‹type›
 """
 
     async def run(self, *args):
-        import pdb;pdb.set_trace()
         if not args:
             ks = []
             ks_len = 6
