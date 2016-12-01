@@ -15,6 +15,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import asyncio
 import sys
+from devrun.support.timing import Stats
 
 from . import BaseDevice
 from devrun.support.abl import ReqReply,Request,Reply,RT
@@ -76,6 +77,7 @@ as it exits when the client terminates.
         logger.info("Start: %s",self.name)
         self.q = asyncio.Queue()
         self.connected = asyncio.Event(loop=self.cmd.loop)
+        self.stats = Stats()
 
         try:
             cfg = self.loc.get('config',{})
@@ -110,6 +112,7 @@ as it exits when the client terminates.
                 break
             self.req = asyncio.Future(loop=self.cmd.loop)
             self.req_msg = d
+            self.stats.start()
             self.proto.send(d)
             try:
                 res = await asyncio.wait_for(self.req, 0.5, loop=self.cmd.loop)
@@ -124,11 +127,15 @@ as it exits when the client terminates.
                 if not f.done():
                     f.set_result(res)
             finally:
+                self.stats.stop()
                 self.req = None
                 self.req_msg = None
 
         logger.info("Stop: %s",self.name)
         self.proto.transport.close()
+
+    def get_stats(self):
+        return self.stats.state
 
     def start(self,proto):
         self.proto = proto

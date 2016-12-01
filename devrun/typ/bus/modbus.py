@@ -21,6 +21,7 @@ from pymodbus.client.common import ModbusClientMixin
 from pymodbus.pdu import ExceptionResponse
 
 from . import BaseDevice
+from devrun.support.timing import Stats
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ or to a remote modbus gateway.
 
     async def run(self):
         self.end = asyncio.Event(loop=self.cmd.loop)
+        self.stats = Stats()
         logger.info("Start: %s",self.name)
 
         try:
@@ -70,11 +72,17 @@ or to a remote modbus gateway.
         self.event.set()
 
     async def execute(self,request):
-        res = await self.proto.protocol.execute(request)
+        self.stats.start()
+        try:
+            res = await self.proto.protocol.execute(request)
+        finally:
+            self.stats.stop()
         if isinstance(res, ExceptionResponse):
             raise ModbusException(res)
         return res
 
+    def get_stats(self):
+        return self.stats.state
 
 Device.register("config","host", cls=str, doc="Host[:port] to connect to, or /dev/serial")
 
