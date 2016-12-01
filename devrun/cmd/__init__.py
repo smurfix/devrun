@@ -17,8 +17,8 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import argparse
 import os
-from qbroker.unit import make_unit as make_qbroker
 from collections.abc import Mapping
+import qbroker
 
 from devrun.util import import_string, load_cfg
 from devrun.device import Registry
@@ -57,7 +57,7 @@ class BaseCommand:
             return
         cfg = self.cfg.get('config',{})
         if 'amqp' in cfg:
-            self.amqp = await make_qbroker(self.name if self.cmdname == 'run' else '%s.%s'%(self.name,self.cmdname), amqp=cfg['amqp'])
+            self.amqp = await qbroker.make_unit(self.name if self.cmdname == 'run' else '%s.%s'%(self.name,self.cmdname), amqp=cfg['amqp'])
     
     async def run(self):
         raise NotImplementedError("You need to override .run()")
