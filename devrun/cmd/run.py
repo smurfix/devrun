@@ -20,7 +20,7 @@ from traceback import print_exc
 from collections.abc import Mapping
 from qbroker.unit import CC_DICT
 
-from . import BaseCommand
+from . import BaseCommand, CMD_TYPES
 from devrun.util import objects, import_string
 from devrun.typ import BaseType
 from devrun.etcd.types import EvcDevice
@@ -81,7 +81,15 @@ run
             res = await res
         return res
 
-    async def rpc_info(self, _subsys=None, _dev=None, _cmd=None, **ak):
+    async def rpc_get(self, _subsys, _dev, _cmd, _a=(),**kw):
+        v = await getattr(self.reg,_subsys).get(_dev, create=False)
+        v = getattr(v,'get_'+_cmd)
+        res = v(*_a,**kw)
+        if inspect.isawaitable(res):
+            res = await res
+        return res
+
+    async def rpc_info(self, _subsys=None, _dev=None, _cmd=None, _proc=None, **ak):
         if _subsys is None:
             assert _dev is None
             res = {}
@@ -96,18 +104,37 @@ run
                         continue
                     else:
                         v = v.result()
-                res[k] = v.state
-        elif _cmd is None:
-            v = await getattr(self.reg,_subsys).get(_dev, create=False)
-            res = {'data':v.loc,'state':v.state}
+                res[k] = v.get_state()
         else:
             v = await getattr(self.reg,_subsys).get(_dev, create=False)
-            v = getattr(v,'cmd_'+_cmd)
-            args, varargs, varkw, defaults = inspect.getargspec(v)
-            args = args[1:]
-            varargs = bool(varargs)
-            varkw = bool(varkw)
-            res = {'doc':v.__doc__, 'args':args, 'varargs':varargs, 'varkw':varkw, 'defaults':defaults}
+            if _cmd is None:
+                res = {
+                    'data': v.loc,
+                    'schema': v.schema,
+                   }
+                for _cmd in CMD_TYPES:
+                    a = []
+                    _cmd += '_'
+                    for k in dir(v):
+                        if k.startswith(_cmd):
+                            a.append(k[len(_cmd):])
+                    if a:
+                        res[_cmd[:-1]] = a
+            elif _cmd not in CMD_TYPES:
+                raise NotImplementedError(_cmd)
+            elif _proc is None:
+                res = {}
+                _cmd += '_'
+                for k in dir(v):
+                    if k.startswith(_cmd):
+                        res[k[len(_cmd):]] = getattr(v,k).__doc__
+            else:
+                v = getattr(v,_cmd+'_'+_proc)
+                args, varargs, varkw, defaults = inspect.getargspec(v)
+                args = args[1:]
+                varargs = bool(varargs)
+                varkw = bool(varkw)
+                res = {'doc':v.__doc__, 'args':args, 'varargs':varargs, 'varkw':varkw, 'defaults':defaults}
         return res
 
     async def stop(self):

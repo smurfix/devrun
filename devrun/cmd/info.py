@@ -28,13 +28,19 @@ from devrun.etcd.types import EvcDevice
 class Command(BaseCommand):
     "Send an 'info' RPC message, print the result"
     help = """\
-info
+info ‹subsystem› ‹devicename› cmd|get ‹command›
     -- Send an 'info' RPC message and print the result.
 
-       Without arguments, lists active subsystems.
+info
+       list of active subsystems
+info ‹subsystem›
        With one argument, lists that subsystem's active devices.
-       With two arguments, lists that device's current state.
-       With three arguments, lists that command's argument list.
+info ‹subsystem› ‹devicename›
+       return that device's config and a list of commands it understands.
+info ‹subsystem› ‹devicename› cmd|get
+       lists commands of that type in greater detail
+info ‹subsystem› ‹devicename› cmd|get ‹command›
+       display that command's arguments
 """
 
     async def run(self, *args):
@@ -66,7 +72,9 @@ info
                 if len(a) > 2:
                     kv['_cmd'] = a[2]
                     if len(a) > 3:
-                        raise NotImplementedError('max three arguments')
+                        kv['_proc'] = a[3]
+                        if len(a) > 4:
+                            raise NotImplementedError('max four arguments')
         res = await self.amqp.rpc('info',**kv)
         pprint(res)
 
