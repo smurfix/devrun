@@ -34,6 +34,7 @@ info
        Without arguments, lists active subsystems.
        With one argument, lists that subsystem's active devices.
        With two arguments, lists that device's current state.
+       With three arguments, lists that command's argument list.
 """
 
     async def run(self, *args):
@@ -41,18 +42,31 @@ info
         if self.amqp is None:
             raise RuntimeError("You did not configure an AMQP connection")
         a=[]
-        k={}
+        kv={}
         for arg in args:
             try:
                 k,v = arg.split('=',1)
             except ValueError:
                 a.append(arg)
+            else:
+                try:
+                    v=int(v)
+                except ValueError:
+                    try:
+                        v=float(v)
+                    except ValueError:
+                        if len(v)>1 and v[0]==v[-1] and v[0] in '\'"':
+                            v=v[1:-1]
+                        pass
+                kv[k]=v
         if len(a) > 0:
-            k['_subsys'] = a[0]
+            kv['_subsys'] = a[0]
             if len(a) > 1:
-                k['_dev'] = a[1]
+                kv['_dev'] = a[1]
                 if len(a) > 2:
-                    raise NotImplementedError('max two arguments')
-        res = await self.amqp.rpc('info',**k)
+                    kv['_cmd'] = a[2]
+                    if len(a) > 3:
+                        raise NotImplementedError('max three arguments')
+        res = await self.amqp.rpc('info',**kv)
         pprint(res)
 

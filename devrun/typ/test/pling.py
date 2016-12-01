@@ -25,6 +25,7 @@ This is the Ping device.
 It prints 'Ping from ‹name›' every second, or however often you set it to.
 """
 
+    q = None
     async def run(self):
         cfg = self.loc.get('config',{})
         w = cfg.get('want',None)
@@ -45,6 +46,13 @@ It prints 'Ping from ‹name›' every second, or however often you set it to.
                 r = await self.q.get()
                 print("Pling got ",r)
                 await asyncio.sleep(cfg.get('interval',1), loop=self.cmd.loop)
+
+    @property
+    def state(self):
+        res = super().state
+        if self.q is not None:
+            res['q_len'] = self.q.qsize()
+        return res
 
 Device.register("config","interval", cls=float, doc="Interval between pings")
 Device.register("config","delay", cls=float, doc="Initial delay")

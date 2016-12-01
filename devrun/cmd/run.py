@@ -15,6 +15,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import sys
 import asyncio
+import inspect
 from traceback import print_exc
 from collections.abc import Mapping
 from qbroker.unit import CC_DICT
@@ -69,9 +70,19 @@ run
         await super().start()
         if self.amqp is None:
             return
-        await self.amqp.register_rpc_async('info',self.rpc_info, call_conv=CC_DICT)
+        for k in dir(self):
+            if k.startswith('rpc_'):
+                await self.amqp.register_rpc_async(k[4:],getattr(self,k), call_conv=CC_DICT)
 
-    async def rpc_info(self, _subsys=None, _dev=None, **ak):
+    async def rpc_cmd(self, _subsys, _dev, _cmd, _a=(),**kw):
+        v = await getattr(self.reg,_subsys).get(_dev, create=False)
+        v = getattr(v,'cmd_'+_cmd)
+        res = v(*_a,**kw)
+        if inspect.isawaitable(res):
+            res = await res
+        return res
+
+    async def rpc_info(self, _subsys=None, _dev=None, _cmd=None, **ak):
         if _subsys is None:
             assert _dev is None
             res = {}
@@ -87,9 +98,17 @@ run
                     else:
                         v = v.result()
                 res[k] = v.state
-        else:
-            v = await getattr(self.reg,_subsys).get(_dev)
+        elif _cmd is None:
+            v = await getattr(self.reg,_subsys).get(_dev, create=False)
             res = {'data':v.loc,'state':v.state}
+        else:
+            v = await getattr(self.reg,_subsys).get(_dev, create=False)
+            v = getattr(v,'cmd_'+_cmd)
+            args, varargs, varkw, defaults = inspect.getargspec(v)
+            args = args[1:]
+            varargs = bool(varargs)
+            varkw = bool(varkw)
+            res = {'doc':v.__doc__, 'args':args, 'varargs':varargs, 'varkw':varkw, 'defaults':defaults}
         return res
 
     async def stop(self):

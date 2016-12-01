@@ -56,7 +56,12 @@ class BaseDevice(object):
 
     @property
     def state(self):
-        return {'name':self.name, 'cfg':self.loc, 'type': self.__module__.rsplit('.',1)[1]}
+        act = []
+        for k in dir(self):
+            if k.startswith('cmd_'):
+                act.append(k[4:])
+        return {'name':self.name, 'cfg':self.loc, 'type': self.__module__.rsplit('.',1)[1],
+            'actions':act}
 
 class NotYetError(RuntimeError):
     pass

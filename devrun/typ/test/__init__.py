@@ -19,11 +19,14 @@ much, if anything.
 """
 
 from devrun.typ import BaseType
-from devrun.device import BaseDevice # as _BaseDevice
+from devrun.device import BaseDevice as _BaseDevice
 
 class Type(BaseType):
     "Test. Do not use in production."
     help = "I am a test type. My devices do not do anything."
 
-#class BaseDevice(_BaseDevice):
-#    pass
+class BaseDevice(_BaseDevice):
+    def cmd_ping(self,ping='pong'):
+        """A little ping command"""
+        return {'reply': ping}
+
