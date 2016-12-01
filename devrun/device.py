@@ -145,9 +145,11 @@ class _SubReg:
             raise RuntimeError('already known',self.name,k,f)
         self.reg[k]=v
 
-    async def get(self,k):
+    async def get(self,k, create=True):
         f = self.reg.get(k,None)
         if f is None:
+            if not create:
+                raise KeyError(k)
             f = self.reg[k] = asyncio.Future()
         elif isinstance(f,asyncio.Future):
             pass
