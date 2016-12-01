@@ -14,28 +14,5 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ## Thus, please do not remove the next line, or insert any blank lines.
 ##BP
 
-__VERSION__ = (0,1,0)
-
-import asyncio
-
-def setup(_loop=None):
-    global loop
-    if loop is None:
-        loop = _loop or asyncio.get_event_loop()
-    elif _loop is not None:
-        assert loop is _loop
-
-loop = None # set by setup()
-
-async def get_amqp(cfg, loop=None):
-    import qbroker
-    qbroker.setup()
-    res = await qbroker.make_unit(loop=loop, **cfg)
-    return res
-
-async def get_etcd(cfg, loop=None):
-    from etcd_tree.etcd import EtcClient
-    res = EtcClient(**cfg['etcd'])
-    await res.start()
-    return res
+__VERSION__ = (0,2,0)
 
