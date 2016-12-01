@@ -17,10 +17,6 @@ class BaseType:
     """Helper class for listing device types"""
     help = None # multi-line help text
 
-    @property
-    def state(self):
-        return {}
-
 class NotGiven:
     pass
 

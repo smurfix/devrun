@@ -15,6 +15,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ##BP
 
 import asyncio
+import inspect
 
 from devrun.util import objects, import_string
 
@@ -54,17 +55,13 @@ class BaseDevice(object):
                     yield p+(a,),cls,b['doc']
         return get((),r)
 
-    @property
-    def state(self):
-        act = []
-        for k in dir(self):
-            if k.startswith('cmd_'):
-                act.append(k[4:])
-        return {'name':self.name, 'cfg':self.loc, 'type': self.__module__.rsplit('.',1)[1],
-            'actions':act}
+    def get_state(self):
+        return {}
 
 class NotYetError(RuntimeError):
     pass
+
+###########################################################################
 
 class Registry:
     """

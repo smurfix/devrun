@@ -47,7 +47,6 @@ It prints 'Ping from ‹name›' every second, or however often you set it to.
                 print("Pling got ",r)
                 await asyncio.sleep(cfg.get('interval',1), loop=self.cmd.loop)
 
-    @property
     def state(self):
         res = super().state
         if self.q is not None:

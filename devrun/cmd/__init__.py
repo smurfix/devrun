@@ -23,6 +23,8 @@ import qbroker
 from devrun.util import import_string, load_cfg
 from devrun.device import Registry
 
+CMD_TYPES={'get','cmd'}
+
 def parser(**kw):
     if 'formatter_class' not in kw:
         kw['formatter_class'] = argparse.RawDescriptionHelpFormatter
