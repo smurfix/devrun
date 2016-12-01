@@ -121,9 +121,8 @@ class EvcDevice(MyRun, recEtcDir,EtcDir):
     async def this_obj(cls, parent=None,recursive=None, pre=None, **kw):
         if recursive is None:
             raise ReloadData
-        import pdb;pdb.set_trace()
         m = 'devrun.typ.%s.%s.Device' % (self.parent.name,pre['type'])
-
+    
     @classmethod
     def check_new_params(self, **params):
         pass

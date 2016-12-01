@@ -16,6 +16,8 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import asyncio
 
+from devrun.util import objects, import_string
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,15 @@ class BaseDevice(object):
                     yield p+(a,),cls,b['doc']
         return get((),r)
 
+    @property
+    def state(self):
+        act = []
+        for k in dir(self):
+            if k.startswith('cmd_'):
+                act.append(k[4:])
+        return {'name':self.name, 'cfg':self.loc, 'type': self.__module__.rsplit('.',1)[1],
+            'actions':act}
+
 class NotYetError(RuntimeError):
     pass
 
@@ -90,6 +101,14 @@ class Registry:
         for v in self.reg.values():
             yield from v
 
+    @property
+    def types(self):
+        """Known types.
+            Yields tuples of name,num_devices,class.
+            """
+        for k,v in self.reg.items():
+            yield k,len(v),import_string('devrun.typ.%s.Type' % (k,))
+        
     def done(self):
         """Triggers a timeout error on all outstanding futures.
             Returns the number of aborts."""
@@ -112,7 +131,15 @@ class _SubReg:
     def __getitem__(self,k):
         dev = self.reg[k]
         if isinstance(dev,asyncio.Future):
-            return NotYetError(self.name,k)
+            raise NotYetError(self.name,k)
+        return dev
+
+    def items(self):
+        return self.reg.items()
+    def keys(self):
+        return self.reg.keys()
+    def __len__(self):
+        return len(self.reg)
 
     def __iter__(self):
         for v in self.reg.values():
@@ -130,9 +157,11 @@ class _SubReg:
             raise RuntimeError('already known',self.name,k,f)
         self.reg[k]=v
 
-    async def get(self,k):
+    async def get(self,k, create=True):
         f = self.reg.get(k,None)
         if f is None:
+            if not create:
+                raise KeyError(k)
             logger.debug("wait for %s.%s",self.name,k)
             f = self.reg[k] = asyncio.Future(loop=self.loop)
         elif isinstance(f,asyncio.Future):
