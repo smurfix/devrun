@@ -14,13 +14,13 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ##BP
 
 class BaseType:
-	"""Helper class for listing device types"""
-	help = None # multi-line help text
+    """Helper class for listing device types"""
+    help = None # multi-line help text
 
-	@property
-	def state(self):
-		return {}
+    @property
+    def state(self):
+        return {}
 
 class NotGiven:
-	pass
+    pass
 
