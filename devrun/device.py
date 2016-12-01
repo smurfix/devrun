@@ -55,8 +55,10 @@ class BaseDevice(object):
                     yield p+(a,),cls,b['doc']
         return get((),r)
 
-    def get_state(self):
-        return {}
+    @property
+    def schema(self):
+        return list(('.'.join(a),b.__name__,c) for a,b,c in self.registrations())
+
 
 class NotYetError(RuntimeError):
     pass

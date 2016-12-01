@@ -26,18 +26,18 @@ from devrun.typ import BaseType
 from devrun.etcd.types import EvcDevice
 
 class Command(BaseCommand):
-    "Send a 'cmd' RPC message, print the result"
+    "Send a 'get' RPC message, print the result"
     help = """\
-cmd
-    -- Send a 'cmd' RPC message and print the result.
+get
+    -- Send a 'get' RPC message and print the result.
 
        Arguments: at least ‹subsystem› ‹devicename› ‹command›
-       Other arguments depend on the command:
-       display them with 'info ‹subsystem› ‹devicename› cmd ‹command›'.
+       Other possible arguments depend on the command:
+       display them with 'info ‹subsystem› ‹devicename› get ‹command›'.
 """
 
     async def run(self, *args):
-        """Basic 'cmd' rpc call"""
+        """Basic 'get' rpc call"""
         if self.amqp is None:
             raise RuntimeError("You did not configure an AMQP connection")
         a=[]
@@ -65,6 +65,6 @@ cmd
         kv['_cmd'] = a[2]
         if len(a) > 3:
             kv['_a'] = a[3:]
-        res = await self.amqp.rpc('cmd',**kv)
+        res = await self.amqp.rpc('get',**kv)
         pprint(res)
 

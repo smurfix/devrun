@@ -82,6 +82,14 @@ run
             res = await res
         return res
 
+    async def rpc_get(self, _subsys, _dev, _cmd, _a=(),**kw):
+        v = await getattr(self.reg,_subsys).get(_dev, create=False)
+        v = getattr(v,'get_'+_cmd)
+        res = v(*_a,**kw)
+        if inspect.isawaitable(res):
+            res = await res
+        return res
+
     async def rpc_info(self, _subsys=None, _dev=None, _cmd=None, _proc=None, **ak):
         if _subsys is None:
             assert _dev is None
@@ -97,13 +105,13 @@ run
                         continue
                     else:
                         v = v.result()
-                res[k] = v.state
+                res[k] = v.get_state()
         else:
             v = await getattr(self.reg,_subsys).get(_dev, create=False)
             if _cmd is None:
                 res = {
                     'data': v.loc,
-                    'schema': None, ## XXX TODO: dump registration
+                    'schema': v.schema,
                    }
                 for _cmd in CMD_TYPES:
                     a = []
@@ -112,13 +120,13 @@ run
                         if k.startswith(_cmd):
                             a.append(k[len(_cmd):])
                     if a:
-                        res[_cmd] = a
+                        res[_cmd[:-1]] = a
             elif _cmd not in CMD_TYPES:
                 raise NotImplementedError(_cmd)
             elif _proc is None:
                 res = {}
                 _cmd += '_'
-                for k in dir(self):
+                for k in dir(v):
                     if k.startswith(_cmd):
                         res[k[len(_cmd):]] = getattr(v,k).__doc__
             else:
