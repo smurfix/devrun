@@ -77,7 +77,8 @@ This module interfaces to an SDM630 power meter via Modbus.
 
         while True:
             try:
-                await asyncio.wait_for(self.trigger.wait(), cfg.get('interval' if self.in_use else 'idle',1), loop=self.cmd.loop)
+                delay = cfg.get('interval',1) if self.in_use else cfg.get('idle',30)
+                await asyncio.wait_for(self.trigger.wait(), delay)
             except asyncio.TimeoutError:
                 pass
             else:
