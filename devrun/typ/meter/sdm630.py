@@ -79,14 +79,6 @@ This module interfaces to an SDM630 power meter via Modbus.
         self.cmd.reg.meter[self.name] = self
 
         while True:
-            try:
-                delay = cfg.get('interval',1) if self.in_use else cfg.get('idle',30)
-                await asyncio.wait_for(self._trigger.wait(), delay)
-            except asyncio.TimeoutError:
-                pass
-            else:
-                self._trigger.clear()
-
             # the abs() calls are here because sometimes
             # people connect their meters the wrong way
             try:
@@ -128,7 +120,14 @@ This module interfaces to an SDM630 power meter via Modbus.
             except ModbusException as exc:
                 logger.warning("%s: %s from %s:%s",self.name,exc, self.bus.name,self.adr)
                 self._trigger.set()
-                
+
+            try:
+                delay = cfg.get('interval',1) if self.in_use else cfg.get('idle',30)
+                await asyncio.wait_for(self._trigger.wait(), delay)
+            except asyncio.TimeoutError:
+                pass
+            else:
+                self._trigger.clear()
 
 Device.register("config","bus", cls=str, doc="Bus to connect to")
 Device.register("config","address", cls=int, doc="This charger's address on the bus")
