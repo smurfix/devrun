@@ -62,6 +62,9 @@ class BaseDevice(object):
     def schema(self):
         return list(('.'.join(a),b.__name__,c) for a,b,c in self.registrations())
 
+    def get_state(self):
+        return {}
+
 
 class NotYetError(RuntimeError):
     pass
