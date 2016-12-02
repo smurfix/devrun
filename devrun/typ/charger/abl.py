@@ -104,7 +104,7 @@ This module interfaces to an ABL Sursum-style charger.
     def charge_amount(self):
         return (self.meter.cur_total if self._charging else self.charge_exit) - self.charge_init
 
-    async def get_mode(self):
+    async def read_mode(self):
         mode = await self.query(RT.state)
         if self.mode is not None and mode == self.mode:
             return mode
@@ -146,9 +146,10 @@ This module interfaces to an ABL Sursum-style charger.
         self.A_min = 6
         self.A = self.A_min
         self.power.register_charger(self)
+        self.meter.register_charger(self)
         self.cmd.reg.charger[self.name] = self
 
-        self.mode = await self.get_mode()
+        self.mode = await self.read_mode()
         logger.debug("%s: got mode %s", self.name,RM[self.mode])
 
         if self.mode == RM.manual:
@@ -156,7 +157,7 @@ This module interfaces to an ABL Sursum-style charger.
 
         logger.info("Start: %s",self.name)
         while True:
-            self.mode = await self.get_mode()
+            self.mode = await self.read_mode()
             if self.mode == RM.manual:
                 raise RuntimeError("mode is set to manual??")
             elif self.mode & RM.error:
