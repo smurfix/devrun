@@ -13,6 +13,8 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ## Thus, please do not remove the next line, or insert any blank lines.
 ##BP
 
+import pytest
+
 from devrun.support import timing
 
 t = 123
@@ -38,6 +40,26 @@ class TestBalancing:
             tm(1)
             s.stop()
             tm(2)
+        self.check(s)
+
+    def test_with(self):
+        s = timing.Stats()
+        for i in range(30):
+            with s:
+                tm(1)
+            tm(2)
+        self.check(s)
+
+    @pytest.mark.run_loop
+    async def test_aiter(self, loop):
+        s = timing.Stats(loop=loop)
+        for i in range(30):
+            async with s:
+                tm(1)
+            tm(2)
+        self.check(s)
+
+    def check(self,s):
         st = s.state
         assert 0.33 < st.pop('load_now') <= 0.34
         assert st == {
