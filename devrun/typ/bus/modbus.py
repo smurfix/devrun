@@ -72,11 +72,8 @@ or to a remote modbus gateway.
         self.event.set()
 
     async def execute(self,request):
-        self.stats.start()
-        try:
+        async with self.stats:
             res = await self.proto.protocol.execute(request)
-        finally:
-            self.stats.stop()
         if isinstance(res, ExceptionResponse):
             raise ModbusException(res)
         return res

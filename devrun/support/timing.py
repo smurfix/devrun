@@ -15,16 +15,20 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 """A small object usable for recording some statistics"""
 
+from asyncio import Lock
 from time import time
 
 class Stats:
-    """This is a small object that aggregates statistics for serialized requests"""
+    """This is a small object that aggregates statistics for serialized requests.
+        It obeys the sync and async context manager protocols.
+        The async version is locked."""
 
-    def __init__(self,decay=0.05):
+    def __init__(self,decay=0.05, loop=None):
         """decay: seconds for 10% decay of averages"""
         assert 0<decay<1
         self.decay = decay
         self.reset()
+        self.lock = Lock(loop=loop)
 
     def start(self):
         t = time()
@@ -38,6 +42,20 @@ class Stats:
         self.n += 1
         self.nt += td
         self.time_per_msg = td*self.decay + self.time_per_msg*(1-self.decay)
+
+    def __enter__(self):
+        assert not self.lock.locked()
+        self.start()
+    def __exit__(self,a,b,c):
+        assert not self.lock.locked()
+        self.stop()
+
+    async def __aenter__(self):
+        await self.lock.__aenter__()
+        self.start()
+    async def __aexit__(self,a,b,c):
+        self.stop()
+        await self.lock.__aexit__(a,b,c)
 
     def reset(self):
         self.first = time()
