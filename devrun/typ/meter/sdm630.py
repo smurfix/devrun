@@ -54,6 +54,19 @@ This module interfaces to an SDM630 power meter via Modbus.
         else:
             return self.charger.charging
 
+    def get_state(self):
+        res = super().get_state()
+        res['amps'] = self.amp
+        res['amp'] = self.amp_max
+        res['watts'] = self.watt
+        res['watt'] = self.watts
+        res['VAs'] = self.VA
+        res['VA'] = self.VAs
+        res['power_factors'] = self.factor
+        res['power_factor'] = self.factor_avg
+        res['W_total'] = self.cur_total
+        return res
+
     async def run(self):
         self.signal = blinker.Signal()
         self._trigger = asyncio.Event(loop=self.cmd.loop)
