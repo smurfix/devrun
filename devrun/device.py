@@ -60,7 +60,7 @@ class BaseDevice(object):
         return list(('.'.join(a),b.__name__,c) for a,b,c in self.registrations())
 
     def get_state(self):
-        res = {'type':self.__module__.rsplit('.',1)[1]}
+        res = {'name':self.name, 'type':self.__module__.rsplit('.',1)[1]}
         doc = self.loc.get('doc',None)
         if doc is not None:
             res['doc'] = doc
