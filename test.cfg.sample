@@ -19,15 +19,18 @@ devices:
         interval: 0.2
     one:
       type: pling
+      doc: one slave
       config:
         delay: 1
         want: two
     two:
       type: pling
+      doc: master
       config:
         delay: 2
     three:
       type: pling
+      doc: another slave
       config:
         delay: 3
         want: two
