@@ -39,10 +39,13 @@ This module interfaces to an SDM630 power meter via Modbus.
         n = len(rr.registers)
         return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
 
+    def trigger(self):
+        self._trigger.set()
+
     def register_charger(self,obj):
         assert self.charger is None
         self.charger = obj
-        self.trigger.set()
+        self._trigger.set()
 
     @property
     def in_use(self):
@@ -53,7 +56,7 @@ This module interfaces to an SDM630 power meter via Modbus.
 
     async def run(self):
         self.signal = blinker.Signal()
-        self.trigger = asyncio.Event(loop=self.cmd.loop)
+        self._trigger = asyncio.Event(loop=self.cmd.loop)
         self.charger = None
         self.cur_total = 0
 
@@ -78,11 +81,11 @@ This module interfaces to an SDM630 power meter via Modbus.
         while True:
             try:
                 delay = cfg.get('interval',1) if self.in_use else cfg.get('idle',30)
-                await asyncio.wait_for(self.trigger.wait(), delay)
+                await asyncio.wait_for(self._trigger.wait(), delay)
             except asyncio.TimeoutError:
                 pass
             else:
-                self.trigger.clear()
+                self._trigger.clear()
 
             # the abs() calls are here because sometimes
             # people connect their meters the wrong way
@@ -124,7 +127,7 @@ This module interfaces to an SDM630 power meter via Modbus.
                 self.signal.send(self)
             except ModbusException as exc:
                 logger.warning("%s: %s from %s:%s",self.name,exc, self.bus.name,self.adr)
-                self.trigger.set()
+                self._trigger.set()
                 
 
 Device.register("config","bus", cls=str, doc="Bus to connect to")

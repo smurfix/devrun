@@ -157,18 +157,21 @@ This module interfaces to an ABL Sursum-style charger.
 
         logger.info("Start: %s",self.name)
         while True:
-            self.mode = await self.read_mode()
+            mode = await self.read_mode()
             if self.mode == RM.manual:
                 raise RuntimeError("mode is set to manual??")
             elif self.mode & RM.error:
                 raise RuntimeError("Charger %s: error %s", self.name,RM[self.mode])
             else:
-                if self.mode in RM.charging:
+                if mode in RM.charging:
                     self.charging = True
-                elif self.mode in RM.want_charging:
+                elif mode in RM.want_charging:
                     self.want_charging = True
                 else:
                     self.charging = False
+                if mode != self.mode:
+                    self.mode = mode
+                    self.meter.trigger()
                 self.brk = await self.query(RT.brk)
 
                 a = await self.query(RT.input)
