@@ -225,5 +225,5 @@ current.
 
 Device.register("config","A_max", cls=float, doc="Maximum allowed current, required")
 Device.register("config","ramp_up", cls=float, doc="charge time with full power, default 5min")
-Device.register("config","headroom", cls=float, doc="additional current limit, default 1.1 times current usage")
+Device.register("config","headroom", cls=float, doc="lower current limit, default 1.1 times current usage")
 
