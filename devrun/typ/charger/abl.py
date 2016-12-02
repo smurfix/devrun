@@ -43,6 +43,21 @@ This module interfaces to an ABL Sursum-style charger.
     async def query(self,func,b=None):
         return (await self.bus.query(self.adr,func,b))
 
+    def get_state(self):
+        res = super().get_state()
+        if self.mode is not None:
+            res['mode'] = RM[self.mode]
+            res['charging'] = self.charging
+            res['connected'] = self.charging or self.want_charging
+            res['on_hold'] = self.A == 0
+            if res['connected']
+                res['A_avail'] = self.A
+            if res['charging']:
+                res['power'] = self.meter.watts
+                res['amp'] = self.meter.amp_max
+                res['power_factor'] = self.meter.factor_avg
+        return res
+
     @property
     def A(self):
         return self._A
