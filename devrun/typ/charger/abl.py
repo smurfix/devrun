@@ -39,6 +39,7 @@ This module interfaces to an ABL Sursum-style charger.
     _charging = False
     mode = None
     _A = 0
+    ready = False
 
     async def query(self,func,b=None):
         return (await self.bus.query(self.adr,func,b))
@@ -50,7 +51,7 @@ This module interfaces to an ABL Sursum-style charger.
             res['charging'] = self.charging
             res['connected'] = self.charging or self.want_charging
             res['on_hold'] = self.A == 0
-            if res['connected']
+            if res['connected']:
                 res['A_avail'] = self.A
             if res['charging']:
                 res['power'] = self.meter.watts
@@ -133,6 +134,9 @@ This module interfaces to an ABL Sursum-style charger.
                 return mode
             logger.warn("%s: modes %d %d",self.name,mode,mode2)
             mode = mode2
+
+    def has_meter_value(self):
+        self.ready = True
 
     async def run(self):
         logger.debug("%s: starting", self.name)
