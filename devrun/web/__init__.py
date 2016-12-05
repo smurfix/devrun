@@ -26,8 +26,13 @@ async def hello(request):
 class BaseView(web.View):
     path = None
 
-class DudView(BaseView):
-    path = '/dud'
+class BaseExt:
+    @classmethod
+    async def start(cls, app):
+        pass
+    @classmethod
+    async def stop(cls, app):
+        pass
 
 class FakeReq:
     """A very hacky way to test whether a resource exists on a path"""
@@ -54,6 +59,8 @@ class App:
         self.app = web.Application(loop=loop)
 
     async def start(self, bindto,port):
+        for cls in objects('devrun.web', BaseExt):
+            await cls.start(self.app)
         for view in objects("devrun.web",BaseView):
             if view.path is not None:
                 print(view)
@@ -73,6 +80,8 @@ class App:
             self.srv.close()
             await self.srv.wait_closed()
         if self.app is not None:
+            for cls in objects('devrun.web', BaseExt):
+                await cls.stop(self.app)
             await self.app.shutdown()
         if self.handler is not None:
             await self.handler.finish_connections(60.0)
