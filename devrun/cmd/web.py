@@ -43,7 +43,7 @@ web
             self.port = atoi(args[-1])
             if len(args) > 1:
                 self.bindto = args[0]
-        self.app = App(self.loop)
+        self.app = App(self)
         await self.app.start(self.bindto,self.port)
 
         while True:
