@@ -113,22 +113,36 @@ as it exits when the client terminates.
             self.req = asyncio.Future(loop=self.cmd.loop)
             self.req_msg = d
             async with self.stats:
-                self.proto.send(d)
-                try:
-                    res = await asyncio.wait_for(self.req, 0.5, loop=self.cmd.loop)
-                except Exception as exc:
-                    if not f.done():
-                        f.set_exception(exc)
-                except BaseException as exc:
-                    if not f.done():
-                        f.set_exception(exc)
-                    raise
-                else:
-                    if not f.done():
-                        f.set_result(res)
-                finally:
-                    self.req = None
-                    self.req_msg = None
+                retries = 0
+                while True:
+                    self.proto.send(d)
+                    try:
+                        res = await asyncio.wait_for(self.req, 0.5, loop=self.cmd.loop)
+                    except asyncio.TimeoutError:
+                        retries += 1
+                        if retries > 5:
+                            raise
+                        self.req_msg = None
+                        self.proto.send(b'\r\n')
+                        await asyncio.sleep(0.5)
+                        if self.req.done():
+                            self.req = asyncio.Future(loop=self.cmd.loop)
+                        self.req_msg = d
+                        continue
+                    except Exception as exc:
+                        if not f.done():
+                            f.set_exception(exc)
+                    except BaseException as exc:
+                        if not f.done():
+                            f.set_exception(exc)
+                        raise
+                    else:
+                        if not f.done():
+                            f.set_result(res)
+                    finally:
+                        self.req = None
+                        self.req_msg = None
+                    break
 
         logger.info("Stop: %s",self.name)
         self.proto.transport.close()
