@@ -54,9 +54,10 @@ class App:
     app=None
     handler=None
 
-    def __init__(self, loop=None):
-        self.loop = loop
-        self.app = web.Application(loop=loop)
+    def __init__(self, cmd):
+        self.loop = cmd.loop
+        self.app = web.Application(loop=self.loop)
+        self.app['devrun.cmd'] = cmd
 
     async def start(self, bindto,port):
         for cls in objects('devrun.web', BaseExt):
