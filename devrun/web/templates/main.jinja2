@@ -1,0 +1,28 @@
+<html><head><title>Mr.{{foo}}</title></head>
+<body><p>This is {{foo}}.
+</p>
+<table>
+<tr>
+<th>name</th>
+<th>state</th>
+<th>max</th>
+<th>Strom</th>
+<th>kW</th>
+<th>kWh</th>
+<th>PF</th>
+</tr>
+{% for n,v in charger.items() %}
+<tr>
+<td>{{n}}</td>
+<td>{% if v.charging %}Yes{% elif v.connected %}waiting{% else %}No{% endif %}</td>
+<td>{{v.A_avail}}</td>
+{% if v.charging %}
+<td>{{'%.02f'|format(v.amp)}}</td>
+<td>{{'%.02f'|format(v.power/1000)}}</td>
+<td>?</td>
+<td>{{'%.02f'|format(v.power_factor)}}</td>
+{% endif %}
+</tr>
+{% endfor %}
+</table>
+</body></html>
