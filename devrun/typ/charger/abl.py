@@ -40,6 +40,9 @@ This module interfaces to an ABL Sursum-style charger.
     mode = None
     _A = 0
     ready = False
+    last_A = 0
+    last_pf = 0
+    last_power = 0
 
     async def query(self,func,b=None):
         return (await self.bus.query(self.adr,func,b))
@@ -188,9 +191,12 @@ This module interfaces to an ABL Sursum-style charger.
                     self.want_charging = True
                 else:
                     self.charging = False
+                send_alert = False
                 if mode != self.mode:
                     self.mode = mode
                     self.meter.trigger()
+                    send_alert = True
+
                 self.brk = await self.query(RT.brk)
 
                 a = await self.query(RT.input)
@@ -212,6 +218,18 @@ This module interfaces to an ABL Sursum-style charger.
                         await self.query(RT.clear_brk)
                     if self.mode == RM.Ax:
                         await self.query(RT.leave_Ax)
+                if self.charging and not send_alert:
+                    if self.last_A != self._A and abs(self.last_A-self._A)/max(self.last_A,self._A) > 0.05:
+                        send_alert = True
+                    elif self.last_pf != self.meter.factor_avg and abs(self.last_pf-self.meter.factor_avg)/max(self.last_pf,self.meter.factor_avg) > 0.05:
+                        send_alert = True
+                    elif self.last_power != self.meter.watts and abs(self.last_power-self.meter.watts)/max(self.last_power,self.meter.watts) > 0.05:
+                        send_alert = True
+                if send_alert:
+                    await self.cmd.amqp.alert("update.charger", _data=self.get_state())
+                    self.last_A = self._A
+                    self.last_pf = self.meter.factor_avg
+                    self.last_power = self.meter.watts
 
             try:
                 await asyncio.wait_for(self.trigger.wait(), cfg.get('interval',1), loop=self.cmd.loop)
