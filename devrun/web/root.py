@@ -17,18 +17,23 @@ from aiohttp import web
 import jinja2
 import os
 import aiohttp_jinja2
+from hamlish_jinja import HamlishExtension
 
 from . import BaseView,BaseExt
 
 class JinjaExt(BaseExt):
     @classmethod
     async def start(self,app):
-        aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__),'templates')))
+        env = aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__),'templates')), extensions=[HamlishExtension])
+        env.hamlish_file_extensions=('.haml',)
+        env.hamlish_mode='debug'
+        env.hamlish_enable_div_shortcut=True
+
         app.router.add_static('/static', os.path.join(os.path.dirname(__file__),'static'))
 
 class RootView(BaseView):
     path = '/'
-    @aiohttp_jinja2.template('main.jinja2')
+    @aiohttp_jinja2.template('main.haml')
     async def get(self):
         qb = self.request.app['devrun.cmd'].amqp
         x = await qb.rpc('info', _cmd='state',_subsys='charger')

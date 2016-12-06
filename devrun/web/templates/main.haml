@@ -1,0 +1,86 @@
+%html lang="en"
+  %head
+    <!-- Required meta tags always come first -->
+    %meta charset="utf-8"
+    %meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    %meta http-equiv="x-ua-compatible" content="ie=edge"
+
+    <!-- Bootstrap CSS -->
+    %link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.5/css/bootstrap.min.css" integrity="sha384-AysaV+vQoT3kOAXZkl02PThvDr8HYKPZhNT5h/CXfBThSRXQ6jW5DO2ekP5ViFdi" crossorigin="anonymous"
+
+    %title
+        Mr.{{foo}}
+
+  %body
+    %h1
+      Ladestationen
+
+    %script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" integrity="sha384-3ceskX3iaEnIogmQchP8opvBy3Mi7Ce34nWjpBIwVTHfGYWQS9jwHDVRnpKKHJg7" crossorigin="anonymous"
+    %script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/js/tether.min.js" integrity="sha384-XTs3FgkjiBgo8qjEjBk0tGmf3wPrWtA6coPfQDfFEY8AnYJwjalXCiosYRBIBZX8" crossorigin="anonymous"
+    %script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.5/js/bootstrap.min.js" integrity="sha384-BLiI7JTZm+JWlgKa0M0kGRpJbF2J8q+qreVrKBC47e3K6BW78kGLrCkeRX6I9RoK" crossorigin="anonymous"
+
+    %p
+      Hier sehen Sie den aktuellen Status der Ladesäulen am Besucherparkplatz der Thomas-Mann-Straße 16-20, Nürnberg.
+    %div class="row"
+      %div class="col-xs-12 col-sm-10 col-md-6"
+        %table class="table table-hover table-bordered table-sm"
+          %thead
+            %tr
+              %th 
+                name
+              %th 
+                state
+              %th 
+                max
+              %th 
+                Strom
+              %th 
+                kW
+              %th 
+                PF
+              %th 
+                kWh
+              %th 
+                min
+          %tbody
+            -for n,v in charger.items()
+              %tr
+                %td
+                  =n
+                %td
+                  -if v.charging
+                    Yes
+                  -elif v.connected
+                    wait
+                  -else
+                    No
+                -if v.charging or v.connected
+                  %td
+                    ='%.1f'|format(v.A_avail)
+                -else
+                  %td
+                    –
+                -if v.charging
+                  %td
+                    ='%.2f'|format(v.amp)
+                  %td
+                    ='%.2f'|format(v.power/1000)
+                  %td
+                    ='%.2f'|format(v.power_factor)
+                -else
+                  %td
+                    –
+                  %td
+                    –
+                  %td
+                    –
+                %td
+                  ='%.2f'|format(v.charge_Wh/1000)
+                %td
+                  ='%.1f'|format(v.charge_sec/60)
+    %p
+      Die Schranke öffnet sich durch die Tasten ‘🞁’ und ‘5’ ("Ladesäulen") an der Sprechstelle.
+      %br
+      Bitte beachten Sie ggf. die Hinweise der Ansage.
+    %p
+      Das Parken an den Ladesäulen ist nur während des Aufladens gestattet!
