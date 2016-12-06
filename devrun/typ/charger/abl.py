@@ -206,7 +206,7 @@ This module interfaces to an ABL Sursum-style charger.
                 c = await self.query(RT.adc_cp_pos)*fADC
                 d = await self.query(RT.adc_cp_neg)*fADC
                 e = await self.query(RT.adc_cs)*12/1023
-                logger.info("M %s I %x O %x + %.02f - %.02f CS %.02f, power %.02f, ch %s brk %s, ch %.01f %.1f",RM[self.mode],a,b,c,d,e, self.A, 'Y' if self.charging else 'N', 'Y' if self.brk else 'N', self.charge_time,self.charge_amount)
+                logger.info("%s: M %s I %x O %x + %.02f - %.02f CS %.02f, Amp %.02f, ch %s brk %s, ch %.01f %.1f",self.name, RM[self.mode],a,b,c,d,e, self.A, 'Y' if self.charging else 'W' if self.want_charging else 'N', 'Y' if self.brk else 'N', self.charge_time,self.charge_amount)
 
                 if self.A < self.A_min:
                     if self.charging:
