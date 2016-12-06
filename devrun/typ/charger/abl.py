@@ -53,6 +53,8 @@ This module interfaces to an ABL Sursum-style charger.
             res['mode'] = RM[self.mode]
             res['charging'] = self.charging
             res['connected'] = self.charging or self.want_charging
+            res['charge_Wh'] = self.charge_amount
+            res['charge_sec'] = self.charge_time
             res['on_hold'] = self.A == 0
             if res['connected']:
                 res['A_avail'] = self.A
