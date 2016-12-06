@@ -40,6 +40,10 @@
 <td>{{'%.02f'|format(v.amp)}}</td>
 <td>{{'%.02f'|format(v.power/1000)}}</td>
 <td>{{'%.02f'|format(v.power_factor)}}</td>
+{% else %}
+<td>–</td>
+<td>–</td>
+<td>–</td>
 {% endif %}
 <td>{{'%.02f'|format(v.charge_Wh/1000)}}</td>
 <td>{{'%.01f'|format(v.charge_sec/60)}}</td>
