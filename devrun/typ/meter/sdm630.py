@@ -14,12 +14,10 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ##BP
 
 import asyncio
-import sys
 import blinker
 import struct
 
 from . import BaseDevice
-from devrun.support.abl import RT,Request,Reply
 from devrun.support.modbus import ModbusException
 
 import logging
