@@ -51,7 +51,9 @@ class EvcProtocol(asyncio.Protocol):
 
     def send(self,req):
         logger.debug("send: %s",str(req))
-        self.transport.write(req.bytes)
+        if not isinstance(req,bytes):
+            req = req.bytes
+        self.transport.write(req)
 
     def connection_lost(self, exc):
         self.parent.stop()
