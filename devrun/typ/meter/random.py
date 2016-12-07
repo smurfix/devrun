@@ -29,7 +29,9 @@ logger = logging.getLogger(__name__)
 class Device(BaseDevice):
     """A power meter used for testing which reports random power levels"""
     help = """\
-This module interfaces to an SDM630 power meter via Modbus.
+This module implements a virtual meter that reports semi-random values.
+
+The typical current level is 90% of the allowed range.
 """
 
     async def query(self,func,b=None):
