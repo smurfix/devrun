@@ -48,12 +48,7 @@
                 %td
                   =n
                 %td
-                  -if v.charging
-                    Yes
-                  -elif v.connected
-                    wait
-                  -else
-                    No
+                  =v.state
                 -if v.charging or v.connected
                   %td
                     ='%.1f'|format(v.A_avail)
@@ -79,8 +74,15 @@
                 %td
                   ='%.1f'|format(v.charge_sec/60)
     %p
-      Die Schranke öffnet sich durch die Tasten ‘🞁’ und ‘5’ ("Ladesäulen") an der Sprechstelle.
+      Mit den Tasten ^ und 5 ("Ladesäulen") an der Sprechstelle können Sie
+      die Schranke auch ohne Zugangskarte öffnen.
       %br
       Bitte beachten Sie ggf. die Hinweise der Ansage.
     %p
       Das Parken an den Ladesäulen ist nur während des Aufladens gestattet!
+      %br
+      Fahrzeuge, die die Zufahrt zu den Ladestationen als Zugang zu einem
+      kostenlosen Parkplatz nutzen, werden ohne Vorwarnung abgeschleppt.
+    %p
+      Der Parkplatz ist video-überwacht.
+

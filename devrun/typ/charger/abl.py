@@ -17,7 +17,7 @@ import asyncio
 import sys
 from time import time
 
-from . import BaseDevice
+from . import BaseDevice, CM,CA
 from devrun.support.abl import Request,Reply, fADC,RM,RT
 
 import logging
@@ -31,37 +31,41 @@ def pwm(A):
     else:
         return int(A/0.06)
 
+modemap = {
+    RM.A: CM.idle,
+    RM.B2: CM.starting,
+    RM.C: CM.active,
+    RM.D: CM.active,
+    RM.Bx: CM.done,
+    RM.B1: CM.waiting,
+    RM.Ax: CM.disabled,
+
+    RM.error: CM.error,
+    RM.manual: CM.manual,
+    }
+brkmap = {
+    CM.idle: CM.off,
+    }
+
 class Device(BaseDevice):
     """ABL Sursum chargers"""
     help = """\
 This module interfaces to an ABL Sursum-style charger.
 """
     _charging = False
-    mode = None
+    __mode = None
     _A = 0
-    ready = False
     last_A = 0
     last_pf = 0
     last_power = 0
+    brk = False
 
     async def query(self,func,b=None):
         return (await self.bus.query(self.adr,func,b))
 
     def get_state(self):
         res = super().get_state()
-        if self.mode is not None:
-            res['mode'] = RM[self.mode]
-            res['charging'] = self.charging
-            res['connected'] = self.charging or self.want_charging
-            res['charge_Wh'] = self.charge_amount
-            res['charge_sec'] = self.charge_time
-            res['on_hold'] = self.A == 0
-            if res['connected']:
-                res['A_avail'] = self.A
-            if res['charging']:
-                res['power'] = self.meter.watts
-                res['amp'] = self.meter.amp_max
-                res['power_factor'] = self.meter.factor_avg
+        res['ext_mode'] = RM[self.__mode]
         return res
 
     @property
@@ -69,187 +73,105 @@ This module interfaces to an ABL Sursum-style charger.
         return self._A
     @A.setter
     def A(self,value):
-        logger.info("%s: avail %f => %f", self.name,self._A,value)
+        if self._A != value:
+            logger.debug("%s: avail %f => %f", self.name,self._A,value)
         assert value == 0 or value >= self.A_min
         assert value <= self.A_max
         self._A = value
         self.trigger.set()
 
-    async def kick_ax(self):
-        await asyncio.sleep(10,loop=self.cmd.loop)
-        logger.warn("%s: Turn on Ax", self.name)
-        await self.query(RT.enter_Ax)
-
-        await asyncio.sleep(5,loop=self.cmd.loop)
-        logger.warn("%s: Turn off Ax", self.name)
-        await self.query(RT.leave_Ax)
-
-    _charging = False
-    charge_start = 0 # EV connected, timestamp
-    charge_started = 0 # current started to flow, timestamp
-    charge_end = 0 # Charge stopped, timestamp
-    charge_init = 0 # meter at beginning, Wh
-    charge_exit = 0 # meter at end, Wh
-    @property
-    def charging(self):
-        return self._charging > 1
-    @property
-    def want_charging(self):
-        return self._charging == 1
-    @want_charging.setter
-    def want_charging(self, val):
-        if val and not self._charging:
-            self.charge_start = t = time()
-            self.charge_init = self.meter.cur_total
-            self._charging = 1
-
-    @charging.setter
-    def charging(self,val):
-        if val:
-            if self._charging < 2:
-                if not self._charging:
-                    self.want_charging = True
-                self.charge_started = time()
-                self._charging = 2
+    async def take_action(self,act):
+        if act == CA.disable or act == CA.thow:
+            await self.query(RT.enter_Ax)
+        elif act == CA.enable or act == CA.thow:
+            await self.query(RT.leave_Ax)
+        elif act == CA.lock:
+            pass
+        elif act == CA.unlock:
+            pass
+        elif act == CA.allow:
+            await self.query(RT.set_brk)
+        elif act == CA.unlock:
+            await self.query(RT.set_pwm, pwm(self.A))
+            await self.query(RT.clear_brk)
         else:
-            if self._charging:
-                self.charge_end = time()
-                self.charge_started = 0
-                self.charge_exit = self.meter.cur_total
-                self._charging = 0
+            raise NotImplementedError(CA[act])
+        self.took_action(act)
 
-    @property
-    def charge_time(self):
-        return (time() if self._charging else self.charge_end) - (self.charge_started or self.charge_start)
-    @property
-    def charge_amount(self):
-        return (self.meter.cur_total if self._charging else self.charge_exit) - self.charge_init
+    async def set_available(self,A):
+        await self.query(RT.set_pwm, pwm(self.A))
+        self.is_available(A)
 
     async def read_mode(self):
         mode = await self.query(RT.state)
-        if self.mode is not None and mode == self.mode:
-            return mode
+        if self.__mode is not None and mode == self.__mode:
+            return self._mode # current mode
         while True:
             await asyncio.sleep(0.1,loop=self.cmd.loop)
             mode2 = await self.query(RT.state)
             if mode2 & RM.transient:
                 logger.warn("%s: transient %d",self.name,mode)
                 continue
+            elif mode & RM.error:
+                mode = RM.error
             if mode == mode2:
-                return mode
+                break
             logger.warn("%s: modes %d %d",self.name,mode,mode2)
             mode = mode2
+        self.__mode = mode
+        mode = modemap[mode]
+        if mode in brkmap:
+            brk = await self.query(RT.brk)
+            if brk:
+                mode = brkmap[mode]
+        if mode == CM.active and self.meter.amp_max*self.meter.factor_avg > 0.5:
+            mode = CM.charging
+        return mode
 
-    def has_meter_value(self):
-        self.ready = True
-
-    async def run(self):
-        logger.debug("%s: starting", self.name)
-        self.trigger = asyncio.Event(loop=self.cmd.loop)
-
+    async def prepare(self):
         cfg = self.loc.get('config',{})
         mode = cfg.get('mode','auto')
         if mode == "manual":
-            await self.run_manual(cfg)
+            await self.prep_manual(cfg)
             return
-
         if mode != "auto":
             raise ConfigError("Mode needs to be 'auto' or 'manual'")
 
         ### auto mode
         self.bus = await self.cmd.reg.bus.get(cfg['bus'])
         logger.debug("%s: got bus %s", self.name,self.bus.name)
-        self.power = await self.cmd.reg.power.get(cfg['power'])
-        logger.debug("%s: got power %s", self.name,self.power.name)
-        self.meter = await self.cmd.reg.meter.get(cfg['meter'])
-        self.signal = self.meter.signal
-        logger.debug("%s: got meter %s", self.name,self.meter.name)
         self.adr = cfg['address']
         self.threshold = cfg.get('threshold',10)
-        self.A_max = cfg.get('A_max',32)
         self.A_min = 6
         self.A = self.A_min
-        self.power.register_charger(self)
-        self.meter.register_charger(self)
-        self.cmd.reg.charger[self.name] = self
 
         self.mode = await self.read_mode()
-        logger.debug("%s: got mode %s", self.name,RM[self.mode])
+        logger.debug("%s: got mode %s", self.name,CM[self.mode])
 
-        if self.mode == RM.manual:
+        if self.mode == CM.manual:
             await self.query(RT.set_auto)
 
-        logger.info("Start: %s",self.name)
-        while True:
-            mode = await self.read_mode()
-            if self.mode == RM.manual:
-                raise RuntimeError("mode is set to manual??")
-            elif self.mode & RM.error:
-                raise RuntimeError("Charger %s: error %s", self.name,RM[self.mode])
-            else:
-                if mode in RM.charging:
-                    self.charging = True
-                elif mode in RM.want_charging:
-                    self.want_charging = True
-                else:
-                    self.charging = False
-                send_alert = False
-                if mode != self.mode:
-                    self.mode = mode
-                    self.meter.trigger()
-                    send_alert = True
+    async def log_me(self):
+        await super().log_me()
+        a = await self.query(RT.input)
+        b = await self.query(RT.output)
+        c = await self.query(RT.adc_cp_pos)*fADC
+        d = await self.query(RT.adc_cp_neg)*fADC
+        e = await self.query(RT.adc_cs)*12/1023
+        logger.info("%s: M %s I %x O %x + %.02f - %.02f CS %.02f",self.name, RM[self.__mode],a,b,c,d,e)
 
-                self.brk = await self.query(RT.brk)
+    async def step(self):
+        if self.mode == CM.manual:
+            raise RuntimeError("mode is set to manual??")
 
-                a = await self.query(RT.input)
-                b = await self.query(RT.output)
-                c = await self.query(RT.adc_cp_pos)*fADC
-                d = await self.query(RT.adc_cp_neg)*fADC
-                e = await self.query(RT.adc_cs)*12/1023
-                logger.info("%s: M %s I %x O %x + %.02f - %.02f CS %.02f, Amp %.02f, ch %s brk %s, ch %.01f %.1f",self.name, RM[self.mode],a,b,c,d,e, self.A, 'Y' if self.charging else 'W' if self.want_charging else 'N', 'Y' if self.brk else 'N', self.charge_time,self.charge_amount)
+        await self.dispatch_actions()
 
-                if self.A < self.A_min:
-                    if self.charging:
-                        logger.warn("%s: min power %f %f",self.name,self.A,self.A_min)
-                        await self.query(RT.enter_Ax)
-                    if not self.brk:
-                        await self.query(RT.set_brk)
-                else:
-                    await self.query(RT.set_pwm, pwm(self.A))
-                    if self.brk:
-                        await self.query(RT.clear_brk)
-                    if self.mode == RM.Ax:
-                        await self.query(RT.leave_Ax)
-                if self.charging and not send_alert:
-                    if self.last_A != self._A and abs(self.last_A-self._A)/max(self.last_A,self._A) > 0.05:
-                        send_alert = True
-                    elif self.last_pf != self.meter.factor_avg and abs(self.last_pf-self.meter.factor_avg)/max(self.last_pf,self.meter.factor_avg) > 0.05:
-                        send_alert = True
-                    elif self.last_power != self.meter.watts and abs(self.last_power-self.meter.watts)/max(self.last_power,self.meter.watts) > 0.05:
-                        send_alert = True
-                if send_alert:
-                    await self.cmd.amqp.alert("update.charger", _data=self.get_state())
-                    self.last_A = self._A
-                    self.last_pf = self.meter.factor_avg
-                    self.last_power = self.meter.watts
-
-            try:
-                await asyncio.wait_for(self.trigger.wait(), cfg.get('interval',1), loop=self.cmd.loop)
-            except asyncio.TimeoutError:
-                pass
-            else:
-                self.trigger.clear()
-
-    async def run_manual(self):
+    async def prep_manual(self):
         raise NotImplementedError("Don't know how to do it manually yet")
 
 Device.register("config","mode", cls=str, doc="Operating mode (auto or manual), default auto")
 Device.register("config","bus", cls=str, doc="Bus to connect to, mandatory")
 Device.register("config","address", cls=int, doc="This charger's address on the bus, mandatory")
-Device.register("config","meter", cls=str, doc="Power meter to use, mandatory")
-Device.register("config","power", cls=str, doc="Power supply to use, mandatory")
-Device.register("config","A_max", cls=float, doc="Maximum allowed current mandatory")
-Device.register("config","interval", cls=float, doc="time between checks, default 1sec")
 Device.register("config","thresh_wh", cls=float, doc="Wh for charging to have started, default 10")
 Device.register("config","thresh_t", cls=float, doc="Timeout for charging to have started, default 30")
 

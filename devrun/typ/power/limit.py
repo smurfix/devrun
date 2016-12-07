@@ -85,9 +85,7 @@ class FeedBased (ZeroPrio):
 class AddIdle (MinPrio):
     """Activate some currently-non-charging stations"""
     def applies(self,c,a):
-        return not c.charging and not c.want_charging
-    def applies(self,c,a):
-        return c.charging and c.charge_time >= c.power.ramp_up
+        return c.useful and not c.charging and not c.want_charging
 
 class FullPower (FeedBased):
     """proportional fullpower"""
