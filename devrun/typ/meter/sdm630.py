@@ -62,7 +62,7 @@ This module interfaces to an SDM630 power meter via Modbus.
         res['VA'] = self.VAs
         res['power_factors'] = self.factor
         res['power_factor'] = self.factor_avg
-        res['W_total'] = self.cur_total
+        res['energy_total'] = self.cur_total
         return res
 
     async def run(self):

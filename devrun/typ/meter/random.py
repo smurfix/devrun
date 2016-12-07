@@ -67,7 +67,7 @@ The typical current level is 90% of the allowed range.
         res['VA'] = self.VAs
         res['power_factors'] = self.factor
         res['power_factor'] = self.factor_avg
-        res['W_total'] = self.cur_total
+        res['energy_total'] = self.cur_total
         return res
 
     @property
