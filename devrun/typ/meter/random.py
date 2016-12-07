@@ -72,7 +72,7 @@ The typical current level is 90% of the allowed range.
 
     @property
     def rnd(self):
-        if self.charger is None:
+        if self.charger is None or not self.charger.charging:
             return 0
         return self.rand.betavariate(10,1)*self.charger.A
 
