@@ -106,6 +106,7 @@ This module interfaces to an ABL Sursum-style charger.
         mode = await self.query(RT.state)
         if self.__mode is not None and mode == self.__mode:
             return self._mode # current mode
+        hits = 0
         while True:
             await asyncio.sleep(0.1,loop=self.cmd.loop)
             mode2 = await self.query(RT.state)
@@ -115,7 +116,9 @@ This module interfaces to an ABL Sursum-style charger.
             elif mode & RM.error:
                 mode = RM.error
             if mode == mode2:
-                break
+                if mode in modemap or hits >= 10:
+                    break
+                hits += 1
             logger.warn("%s: modes %d %d",self.name,mode,mode2)
             mode = mode2
         self.__mode = mode
