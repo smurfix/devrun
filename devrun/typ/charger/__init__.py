@@ -40,8 +40,9 @@ class CM:
     idle=11 # power available, no car A
     NEW=20 # threshold for connecting a new car
     done=21 # charging done Bx
-    waiting=22 # car but no power B1(+lock)
-    starting=23 # waiting for car to start B2
+    OLD=25 # threshold for reporting as disconnected
+    waiting=26 # car but no power B1(+lock)
+    starting=27 # waiting for car to start B2
     active=30 # charging but no measured load C
     charging=31 # charging and measured load
     _inf=999
@@ -176,11 +177,10 @@ class BaseDevice(_BaseDevice):
         self.send_alert = True
         self.meter.trigger()
         if self._mode < CM.NEW and mode > CM.NEW:
-            self.charge_start = time()
-            self.charge_started = 0
-            self.charge_ended = 0
-            self.charge_init = self.meter.cur_total
-        elif self._mode > CM.NEW and mode < CM.NEW:
+            self.charge_start = self.charge_end = time()
+            self.charge_started = self.charge_ended = 0
+            self.charge_init = self.charge_exit = self.meter.cur_total
+        elif self._mode > CM.OLD and mode < CM.OLD:
             self.charge_end = time()
             self.charge_exit = self.meter.cur_total
         if self._mode < CM.charging and mode >= CM.charging:
@@ -202,10 +202,10 @@ class BaseDevice(_BaseDevice):
 
     @property
     def charge_time(self):
-        return (time() if self._mode > CM.NEW else self.charge_end) - (self.charge_started or self.charge_start)
+        return (time() if self._mode > CM.OLD else self.charge_end) - (self.charge_started or self.charge_start)
     @property
     def charge_amount(self):
-        return (self.meter.cur_total if self._mode > CM.NEW else self.charge_exit) - self.charge_init
+        return (self.meter.cur_total if self._mode > CM.OLD else self.charge_exit) - self.charge_init
 
     @property
     def charging(self):
