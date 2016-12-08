@@ -65,7 +65,7 @@ This module interfaces to an ABL Sursum-style charger.
 
     def get_state(self):
         res = super().get_state()
-        res['ext_mode'] = RM[self.__mode]
+        res['raw_state'] = RM[self.__mode]
         return res
 
     @property
