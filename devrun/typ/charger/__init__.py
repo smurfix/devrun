@@ -54,7 +54,7 @@ class CA:
     none=0 # no action
     disable=1 # permanently
     throw=2 # temporary disable while charging
-    lock=3 # don't allow connecting a car
+    lock=3 # don't allow connecting a car (physically)
     defer=4 # no power available
 
     ON=10 # threshold for enabling things
