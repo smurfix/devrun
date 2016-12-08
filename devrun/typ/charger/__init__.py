@@ -159,7 +159,7 @@ class BaseDevice(_BaseDevice):
         res['connected'] = self._mode >= CM.NEW
         res['on_hold'] = self.A == 0
         if res['connected']:
-            res['A_avail'] = self.A
+            res['amp_avail'] = self.A
         if res['charging']:
             res['power'] = self.meter.watts
             res['amp'] = self.meter.amp_max
