@@ -29,7 +29,8 @@ class JinjaExt(BaseExt):
         env.hamlish_mode='debug'
         env.hamlish_enable_div_shortcut=True
 
-        app.router.add_static('/static', os.path.join(os.path.dirname(__file__),'static'))
+        app.router.add_static('/static', os.path.join(os.path.dirname(__file__),'static'), name='static')
+        env.filters['static'] = lambda x:app.router.named_resources()['static'].url_for(filename=x)
 
 class RootView(BaseView):
     path = '/'
@@ -37,4 +38,4 @@ class RootView(BaseView):
     async def get(self):
         qb = self.request.app['devrun.cmd'].amqp
         x = await qb.rpc('info', _cmd='state',_subsys='charger')
-        return {'foo':'bar','charger':x}
+        return {'foo':'bar','charger':x, 'host':self.request.headers['host']}
