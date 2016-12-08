@@ -72,6 +72,7 @@ class Type(BaseType):
 class BaseDevice(_BaseDevice):
     """Common methods for chargers"""
 
+    name = display_name = "‹starting up›"
     _mode = last_mode = force_mode = CM.unknown
     _A = 0
     A_min = 10 # override, possibly
@@ -153,6 +154,7 @@ class BaseDevice(_BaseDevice):
 
     def get_state(self):
         res = super().get_state()
+        res['display_name'] = self.display_name
         res['state'] = CM[self._mode]
         res['charge_Wh'] = self.charge_amount
         res['charge_sec'] = self.charge_time
@@ -279,6 +281,7 @@ class BaseDevice(_BaseDevice):
         self.trigger = asyncio.Event(loop=self.cmd.loop)
         cfg = self.loc.get('config',{})
 
+        self.display_name = cfg.get('display',self.name)
         self.power = await self.cmd.reg.power.get(cfg['power'])
         self.meter = await self.cmd.reg.meter.get(cfg['meter'])
         self.signal = self.meter.signal
@@ -320,6 +323,7 @@ class BaseDevice(_BaseDevice):
             else:
                 self.trigger.clear()
 
+BaseDevice.register("config","display", cls=str, doc="Name to show in the GUI")
 BaseDevice.register("config","meter", cls=str, doc="Power meter to use, mandatory")
 BaseDevice.register("config","power", cls=str, doc="Power supply to use, mandatory")
 BaseDevice.register("config","A_max", cls=float, doc="Maximum allowed current, mandatory")

@@ -49,7 +49,7 @@
           -for n,v in charger.items()
             %tr id='charger_{{n}}'
               %th scope="row"
-                =n
+                =v.display_name
               %td class="f1"
                 =v.state
               -if v.charging or v.connected
