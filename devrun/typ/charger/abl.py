@@ -127,8 +127,6 @@ This module interfaces to an ABL Sursum-style charger.
             brk = await self.query(RT.brk)
             if brk:
                 mode = brkmap[mode]
-        if mode == CM.active and self.meter.amp_max*self.meter.factor_avg > 0.5:
-            mode = CM.charging
         return mode
 
     async def prepare(self):
@@ -166,6 +164,9 @@ This module interfaces to an ABL Sursum-style charger.
     async def step(self):
         if self.mode == CM.manual:
             raise RuntimeError("mode is set to manual??")
+
+        if self.mode == CM.active and self.meter.amp_max*self.meter.factor_avg > 0.5:
+            self.mode = CM.charging
 
         await self.dispatch_actions()
 
