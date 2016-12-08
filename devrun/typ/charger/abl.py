@@ -122,7 +122,7 @@ This module interfaces to an ABL Sursum-style charger.
             logger.warn("%s: modes %d %d",self.name,mode,mode2)
             mode = mode2
         self.__mode = mode
-        mode = modemap[mode]
+        mode = modemap.get(mode,CM.error)
         if mode in brkmap:
             brk = await self.query(RT.brk)
             if brk:
