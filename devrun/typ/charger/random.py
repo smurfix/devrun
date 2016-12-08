@@ -28,14 +28,13 @@ ModeMap = {
     CM.unknown:{CM.off:2}, # newly initialized
     CM.error:{CM.off:5,CM.disabled:5}, # not working due to error
     CM.disabled:{CM.off:2}, # permanently not working A'
-    CM.off:{}, # no power available, no car; >idle due to power control
+    CM.off:{CM.waiting:5}, # no power available, no car; >idle due to power control
     CM.idle:{CM.starting:5}, # power available, no car A
-    CM.NEW:{}, # threshold for connecting a new car
     CM.done:{CM.idle:3,CM.starting:6}, # charging done Bx
-    CM.waiting:{}, # car but no power B1(+lock): >starting on power
+    CM.waiting:{}, # car but no power B1(+defer): >starting on power
     CM.starting:{CM.active:3}, # waiting for charge to enable B2
     CM.active:{CM.done:30}, # charging but no measured load C, >charging on power
-    CM.charging:{CM.done:20}, # charging
+    CM.charging:{CM.done:40}, # charging
 }
 
 class Device(BaseDevice):
