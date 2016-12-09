@@ -7,31 +7,34 @@ config:
       virtualhost: /test
     handlers:
       dead: 1
-  etcd:
-    host: localhost
-    port: 2379
-    root: /test/evc
 devices:
-  test:
-    what:
-      type: ping
+  meter:
+    r1:
+      type: random
       config:
-        interval: 0.2
-    one:
-      type: pling
-      doc: one slave
+        power: rp1
+    r2:
+      type: random
       config:
-        delay: 1
-        want: two
-    two:
-      type: pling
-      doc: master
+        power: rp1
+  power:
+    rp1:
+      type: limit
       config:
-        delay: 2
-    three:
-      type: pling
-      doc: another slave
+        A_max: 40
+        headroom: 1.15
+  charger:
+    r1:
+      type: random
       config:
-        delay: 3
-        want: two
-
+        display: one
+        meter: r1
+        power: p1
+        A_max: 32
+    r2:
+      type: random
+      config:
+        display: one
+        meter: r2
+        power: rp1
+        A_max: 32
