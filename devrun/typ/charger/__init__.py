@@ -196,7 +196,7 @@ class BaseDevice(_BaseDevice):
         return self._A
     @A.setter
     def A(self,value):
-        logger.info("%s: avail %f => %f", self.name,self._A,value)
+        logger.debug("%s: avail %f => %f", self.name,self._A,value)
         assert value == 0 or value >= self.A_min
         assert value <= self.A_max
         self._A = value
@@ -274,7 +274,7 @@ class BaseDevice(_BaseDevice):
             return False
 
     async def log_me(self):
-        logger.info("%s:%s Amp %.02f, ch %.01f %.1f",self.name, CM[self._mode],self.A, self.charge_time,self.charge_amount)
+        logger.debug("%s:%s Amp %.02f, ch %.01f %.1f",self.name, CM[self._mode],self.A, self.charge_time,self.charge_amount)
 
     async def run(self):
         logger.debug("%s: starting", self.name)
@@ -294,7 +294,7 @@ class BaseDevice(_BaseDevice):
         self.meter.register_charger(self)
         self.power.register_charger(self)
         self.cmd.reg.charger[self.name] = self
-        logger.info("Start: %s",self.name)
+        logger.debug("Start: %s",self.name)
 
         while True:
             self.mode = await self.read_mode()

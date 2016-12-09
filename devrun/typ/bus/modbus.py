@@ -40,7 +40,7 @@ or to a remote modbus gateway.
     async def run(self):
         self.end = asyncio.Event(loop=self.cmd.loop)
         self.stats = Stats()
-        logger.info("Start: %s",self.name)
+        logger.debug("Start: %s",self.name)
 
         try:
             cfg = self.loc.get('config',{})
@@ -64,11 +64,11 @@ or to a remote modbus gateway.
         self.cmd.reg.bus[self.name] = self
         await self.end.wait()
 
-        logger.info("Stop: %s",self.name)
+        logger.debug("Stop: %s",self.name)
         self.proto.stop()
 
     def stop(self):
-        logger.info("Stopping: %s",self.name)
+        logger.debug("Stopping: %s",self.name)
         self.event.set()
 
     async def execute(self,request):

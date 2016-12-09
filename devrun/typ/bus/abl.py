@@ -76,7 +76,7 @@ as it exits when the client terminates.
     proto = None
 
     async def run(self):
-        logger.info("Start: %s",self.name)
+        logger.debug("Start: %s",self.name)
         self.q = asyncio.Queue()
         self.connected = asyncio.Event(loop=self.cmd.loop)
         self.stats = Stats()
@@ -105,7 +105,7 @@ as it exits when the client terminates.
         await asyncio.sleep(0.5)
         self.proto.transport.write(b'XXX\r\n')
         await asyncio.sleep(0.5)
-        logger.info("Running: %s",self.name)
+        logger.debug("Running: %s",self.name)
         self.cmd.reg.bus[self.name] = self
 
         while self.connected.is_set():
@@ -146,7 +146,7 @@ as it exits when the client terminates.
                         self.req_msg = None
                     break
 
-        logger.info("Stop: %s",self.name)
+        logger.debug("Stop: %s",self.name)
         self.proto.transport.close()
 
     def get_stats(self):
@@ -157,7 +157,7 @@ as it exits when the client terminates.
         self.connected.set()
 
     def stop(self):
-        logger.info("Stopping: %s",self.name)
+        logger.debug("Stopping: %s",self.name)
         self.q.put((None,None))
 
     def msg_received(self,d):

@@ -124,7 +124,7 @@ This module interfaces to an SDM630 power meter via Modbus.
 
                 val = await self.floats(172,1) # total
                 self.cur_total = abs(val[0])*1000 - self.last_total
-                logger.info("%s: amp %.1f %s pf %.3f watt %.1f va %.1f sum %.1f",self.name,
+                logger.debug("%s: amp %.1f %s pf %.3f watt %.1f va %.1f sum %.1f",self.name,
                     self.amps, ','.join('%.2f' % x for x in self.amp),
                     self.factor_avg,self.watts,self.VAs,self.cur_total)
                 self.signal.send(self)

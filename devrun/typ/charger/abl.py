@@ -159,7 +159,7 @@ This module interfaces to an ABL Sursum-style charger.
         c = await self.query(RT.adc_cp_pos)*fADC
         d = await self.query(RT.adc_cp_neg)*fADC
         e = await self.query(RT.adc_cs)*12/1023
-        logger.info("%s: M %s I %x O %x + %.02f - %.02f CS %.02f",self.name, RM[self.__mode],a,b,c,d,e)
+        logger.debug("%s: M %s I %x O %x + %.02f - %.02f CS %.02f",self.name, RM[self.__mode],a,b,c,d,e)
 
     async def step(self):
         if self.mode == CM.manual:
