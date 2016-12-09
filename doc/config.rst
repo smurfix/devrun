@@ -6,12 +6,15 @@ DevRun uses YAML to store state and persistent data, including system configurat
 Informally, there are subdirectories for each type of device, with named
 subdirectories using a ``type`` to describe the actual instance. Thus, a
 typical (albeit incomplete) data structure for managing an array of
-chargers for electric cars would be
+chargers for electric cars would be:
 
-    
+    config
+        amqp
+            host: localhost
+    devices
         charger
             s1
-                type: EVCC_auto
+                type: abl
                 config
                     meter: m1
                     bus: s123
@@ -21,12 +24,13 @@ chargers for electric cars would be
         meter
             m1
                 config
-                    type: SDM630
+                    type: sdm630
                     bus: mb1
                     address: 1
         control
+            // TODO
             master
-                type: builtin
+                type: TODO
                 config
                     xxx
         bus
@@ -34,7 +38,7 @@ chargers for electric cars would be
                 type: evclink
                 config
                     remote: host2:50485
-                    local: /dev/rs485-1
+                    // or local: /dev/rs485-1
             mb1
                 type: modbus
                 config
@@ -52,6 +56,7 @@ chargers for electric cars would be
                 config
                     A_max: 100
         front
+            // TODO
             plugsurfing
                 type: plugsurfing
                 config
