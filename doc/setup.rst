@@ -61,6 +61,11 @@ Starts up all devices.
 
 Any uncaught error will result in a stack trace and a (clean) termination of the whole stack.
 
+web
+===
+
+Starts a web server.
+
 help
 ====
 
