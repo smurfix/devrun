@@ -24,6 +24,8 @@ Create a configuration file:
 Basic usage
 -----------
 
+The `devrun` command supports a couple of sub-commands.
+
 type
 ====
 
@@ -46,13 +48,18 @@ set for it.
 
     type test ping
 
-will tell you that it requires a ModBus-TCP gateway and a device address:
+will tell you that it recognizes a delay parameter:
 
     Parameters:
 
-    bus: ‹host› or ‹host:port›  address of a ModBus/TCP gateway
-    bus_addr: ‹int›             device address on that bus
-    phase: ‹int›                phase to measure. 0:all of them
+    config.interval float    Interval between 'foo' pings
+
+type ‹class› ‹kind› ‹name›
+==========================
+
+get
+===
+
 
 run
 ===
@@ -61,10 +68,20 @@ Starts up all devices.
 
 Any uncaught error will result in a stack trace and a (clean) termination of the whole stack.
 
+Hopefully.
+
 web
 ===
 
-Starts a web server.
+Starts a web server, based on `aiohttp`.
+
+Routes are loaded dynamically: simply add modules below `devrun.web`
+which subclass `devrun.web.BaseView`. For system-wide startup and teardown,
+subclass `devrun.web.BaseExt` and override the `start` and or `stop` class
+methods.
+
+See the `evc` branch for an example (a dynamically-updated status page
+using Jinja2 templates and websockets).
 
 help
 ====

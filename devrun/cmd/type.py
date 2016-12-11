@@ -48,7 +48,7 @@ type ‹group› ‹type›
             print(k.help)
             print('\nKnown types:\n')
 
-            for k in objects('devrun.typ.'+args[0], BaseDevice):
+            for k in objects('devrun.typ.'+args[0], BaseDevice, filter=lambda x:hasattr(x,'help')):
                 print("""\
 *** %s
 %s
@@ -69,7 +69,7 @@ type ‹group› ‹type›
                 ks_tlen = max(ks_tlen,len(t))
                 ks.append((n,t,d or ''))
             if ks:
-                print('\nKnown config parameters:\n')
+                print('\nKnown parameters:\n')
                 f = '%%-%ds %%-%ds %%s' % (ks_nlen,ks_tlen)
             
                 for n,v,d in sorted(ks):

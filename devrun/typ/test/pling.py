@@ -21,8 +21,12 @@ from . import BaseDevice
 class Device(BaseDevice):
     """Test device for syncing"""
     help = """\
-This is the Ping device.
-It prints 'Ping from ‹name›' every second, or however often you set it to.
+This is the Pling device.
+It creates a master/slave system for testing.
+Pling devices with a "want" config parameter send messages to another pling
+device with no "want" parameter, which will queue and print them.
+
+Configuring a slave to send to anoher slave will result in an error.
 """
 
     q = None
