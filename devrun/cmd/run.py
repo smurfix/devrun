@@ -40,9 +40,9 @@ run
         self.endit = asyncio.Event(loop=self.loop)
         def ended(f):
             try:
-                exc = f.result()
+                f.result()
             except asyncio.CancelledError:
-                exc = None
+                pass
             except Exception:
                 print_exc()
             finally:
