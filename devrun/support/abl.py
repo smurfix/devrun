@@ -156,7 +156,7 @@ class ReqReply:
 
     @staticmethod
     def build(s):
-        s = s.decode('ascii')
+        s = s.decode('latin1')
         if s[0] == Request.lead:
             c = Request
         elif s[0] == Reply.lead:
