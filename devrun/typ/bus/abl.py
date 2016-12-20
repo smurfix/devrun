@@ -184,11 +184,15 @@ as it exits when the client terminates.
 
     async def query(self,adr,func,b=None):
         req = Request(adr,func,b)
-        res = await self.do_request(req)
-        try:
-            return int(res.b)
-        except TypeError:
-            return res.b
+        while True:
+            res = await self.do_request(req)
+            if res is None:
+                await asyncio.sleep(0.2,loop=self.cmd.loop)
+                continue
+            try:
+                return int(res.b)
+            except TypeError:
+                return res.b
 
 Device.register("config","host", cls=str, doc="Host[:port] to connect to, or /dev/serial")
 
