@@ -14,6 +14,8 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ##BP
 
 from devrun.support import rev
+import logging
+logger = logging.getLogger(__name__)
 
 fADC = 0.017
 
@@ -162,7 +164,8 @@ class ReqReply:
         elif s[0] == Reply.lead:
             c = Reply
         else:
-            raise RuntimeError('Unknown input: '+repr(s))
+            logger.warn('Unknown input: '+repr(s))
+            return None
         s = s[1:].strip('\n').strip('\r').strip(' ').split(' ')
         s[0] = int(s[0])
         s[1] = int(s[1])
