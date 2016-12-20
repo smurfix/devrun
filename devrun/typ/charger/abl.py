@@ -59,6 +59,7 @@ This module interfaces to an ABL Sursum-style charger.
     last_pf = 0
     last_power = 0
     brk = False
+    abcde = (0,0,0,0,0)
 
     async def query(self,func,b=None):
         return (await self.bus.query(self.adr,func,b))
@@ -154,12 +155,35 @@ This module interfaces to an ABL Sursum-style charger.
 
     async def log_me(self):
         await super().log_me()
+        p = await self.query(RT.pwm)
         a = await self.query(RT.input)
         b = await self.query(RT.output)
         c = await self.query(RT.adc_cp_pos)*fADC
+        c1 = (c+1)//3
+        c2 = (c+2)//3
+        if (c1 == c2):
+            cc = c1*3
+        else:
+            cc = c
+        bb = b
+        if self.__mode == RM.A:
+            bb |= 0x01
+        elif self.__mode in (RM.B2,RM.C):
+            bb |= 0x60
+        elif self.__mode == RM.Bx:
+            bb |= 0x62
+
         d = await self.query(RT.adc_cp_neg)*fADC
+        if (d < 1):
+            dd = 0
+        elif (d > 11):
+            dd = 12
+        else:
+            dd = d
         e = await self.query(RT.adc_cs)*12/1023
-        logger.debug("%s: M %s I %x O %x + %.02f - %.02f CS %.02f",self.name, RM[self.__mode],a,b,c,d,e)
+        if self.abcde[:5] != (p,a,bb,cc,dd) or abs(self.abcde[5]-e)>0.2:
+            logger.info("%s: M %s I %x O %x + %.02f - %.02f CS %.02f pwm %d",self.name, RM[self.__mode],a,b,c,d,e,p)
+            self.abcde = (p,a,bb,cc,dd,e)
 
     async def step(self):
         if self.mode == CM.manual:
