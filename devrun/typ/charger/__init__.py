@@ -295,6 +295,7 @@ class BaseDevice(_BaseDevice):
         self.power.register_charger(self)
         self.cmd.reg.charger[self.name] = self
         logger.debug("Start: %s",self.name)
+        self.send_alert = True
 
         while True:
             self.mode = await self.read_mode()
@@ -308,7 +309,10 @@ class BaseDevice(_BaseDevice):
                 elif self.last_power != self.meter.watts and abs(self.last_power-self.meter.watts)/max(self.last_power,self.meter.watts) > 0.05:
                     self.send_alert = True
 
-            if self.send_alert:
+            if self.send_alert or last_alert+5 < time():
+                # the 5 is hardcoded: 0.1 minutes are six seconds
+                last_alert = time()
+
                 await self.log_me()
                 await self.cmd.amqp.alert("update.charger", _data=self.get_state())
                 self.last_A = self._A
