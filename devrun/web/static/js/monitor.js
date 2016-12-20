@@ -52,7 +52,7 @@
 						f.find('.f5').text('–');
 					}
 					f.find('.f6').text((m.charge_Wh/1000).toFixed(2));
-					f.find('.f7').text((m.charge_sec/60).toFixed(2));
+					f.find('.f7').text((m.charge_sec/60).toFixed(1));
 				}
 			};
 			ws.onopen = function (msg) {
