@@ -203,16 +203,18 @@ current.
     def chargers(self):
         return self._chargers.values()
 
-    async def run(self):
-        cfg = self.loc.get('config',{})
+    async def prepare1(self):
+        super().prepare1()
         self.prio = tuple(p() for p in prio)
-        self.A_max = cfg['A_max']
-        self.ramp_up = cfg.get('ramp_up',5*60)
-        self.headroom = cfg.get('headroom',1.1)
+        self.A_max = self.cfg['A_max']
+        self.ramp_up = self.cfg.get('ramp_up',5*60)
+        self.headroom = self.cfg.get('headroom',1.1)
         self._chargers = {}
         self.q = asyncio.Queue()
-        self.cmd.reg.power[self.name] = self
-        logger.debug("Start: %s",self.name)
+
+    async def run(self):
+        await super().prepare1()
+        await super().prepare2()
 
         while True:
             cmd,obj = await self.q.get()

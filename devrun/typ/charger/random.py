@@ -55,7 +55,8 @@ This module implements a dummy charger which is randomly turning itself on and o
             logger.info("%s: ignore mode change %s to %s due to %s",
                 self.name,CM[self._mode],CM[m],CM[self._new_mode])
 
-    async def prepare(self):
+    async def prepare1(self):
+        await super().prepare1()
         self.rand = Random()
 
         cfg = self.loc.get('config',{})
@@ -109,7 +110,8 @@ This module implements a dummy charger which is randomly turning itself on and o
                 return k
         return self._mode
 
-    async def step(self):
+    async def step1(self):
+        await super().step1()
         if self._mode == CM.active and self.meter.amp_max>0.1:
             self.mode = CM.charging
         await self.dispatch_actions()

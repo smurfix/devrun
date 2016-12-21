@@ -79,7 +79,7 @@ This module interfaces to an ABL Sursum-style charger.
         assert value == 0 or value >= self.A_min
         assert value <= self.A_max
         self._A = value
-        self.trigger.set()
+        self.trigger()
 
     async def take_action(self,act):
         if act == CA.disable:
@@ -130,7 +130,8 @@ This module interfaces to an ABL Sursum-style charger.
                 mode = brkmap[mode]
         return mode
 
-    async def prepare(self):
+    async def prepare1(self):
+        await super().prepare1()
         cfg = self.loc.get('config',{})
         mode = cfg.get('mode','auto')
         if mode == "manual":
@@ -185,7 +186,8 @@ This module interfaces to an ABL Sursum-style charger.
             logger.info("%s: M %s I %x O %x + %.02f - %.02f CS %.02f pwm %d",self.name, RM[self.__mode],a,b,c,d,e,p)
             self.abcde = (p,a,bb,cc,dd,e)
 
-    async def step(self):
+    async def step1(self):
+        await super().step1()
         if self.mode == CM.manual:
             raise RuntimeError("mode is set to manual??")
 

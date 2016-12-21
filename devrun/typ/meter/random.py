@@ -42,13 +42,10 @@ The typical current level is 90% of the allowed range.
         n = len(rr.registers)
         return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
 
-    def trigger(self):
-        self._trigger.set()
-
     def register_charger(self,obj):
         assert self.charger is None
         self.charger = obj
-        self._trigger.set()
+        self.trigger()
 
     @property
     def in_use(self):
@@ -76,75 +73,46 @@ The typical current level is 90% of the allowed range.
             return 0
         return self.rand.betavariate(10,1)*self.charger.A
 
-    async def run(self):
-        self.signal = blinker.Signal()
-        self._trigger = asyncio.Event(loop=self.cmd.loop)
-        self.charger = None
-        self.cur_total = 0
+    async def prepare1(self):
+        await super().prepare1()
+
         self.rand = Random()
 
-        self.amp = [0]*3
-        self.watt = [0]*3
-        self.VA = [0]*3
-        self.factor = [0]*3
+        self.min = self.cfg.get('min',0)
+        self.max = self.cfg.get('max',32)
 
-        cfg = self.loc.get('config',{})
-        self.min = cfg.get('min',0)
-        self.max = cfg.get('max',32)
-        self.power = await self.cmd.reg.power.get(cfg['power'])
+    async def step1(self):
+        await super().step1()
 
-        self.cmd.reg.meter[self.name] = self
+        self.amp[0] = self.rnd
+        self.amp[1] = self.rnd
+        self.amp[2] = self.rnd
+        self.amp_max = max(self.amp)
 
-        t1=0
-        while True:
-            # the abs() calls are here because sometimes
-            # people connect their meters the wrong way
-            self.amp[0] = self.rnd
-            self.amp[1] = self.rnd
-            self.amp[2] = self.rnd
-            self.amp_max = max(self.amp)
+        self.factor[0] = self.rand.betavariate(5,1)
+        self.factor[1] = self.rand.betavariate(5,1)
+        self.factor[2] = self.rand.betavariate(5,1)
 
-            self.factor[0] = self.rand.betavariate(5,1)
-            self.factor[1] = self.rand.betavariate(5,1)
-            self.factor[2] = self.rand.betavariate(5,1)
+        self.VA[0] = self.amp[0]*230
+        self.VA[1] = self.amp[1]*230
+        self.VA[2] = self.amp[2]*230
 
-            self.VA[0] = self.amp[0]*230
-            self.VA[1] = self.amp[1]*230
-            self.VA[2] = self.amp[2]*230
+        self.watt[0] = self.VA[0]*self.factor[0]
+        self.watt[1] = self.VA[1]*self.factor[1]
+        self.watt[2] = self.VA[2]*self.factor[2]
 
-            self.watt[0] = self.VA[0]*self.factor[0]
-            self.watt[1] = self.VA[1]*self.factor[1]
-            self.watt[2] = self.VA[2]*self.factor[2]
+        asum = sum(self.amp)
+        if asum == 0:
+            self.factor_avg = 1
+        else:
+            self.factor_avg = sum(self.amp[n]*self.factor[n] for n in (0,1,2))/asum
 
-            asum = sum(self.amp)
-            if asum == 0:
-                self.factor_avg = 1
-            else:
-                self.factor_avg = sum(self.amp[n]*self.factor[n] for n in (0,1,2))/asum
+        self.amps = sum(self.amp)
+        self.watts = sum(self.watt)
+        self.VAs = sum(self.VA)
 
-            self.amps = sum(self.amp)
-            self.watts = sum(self.watt)
-            self.VAs = sum(self.VA)
+        self.cur_total += sum(self.watt[i]*self.loop_time/3600 for i in (0,1,2))
 
-            self.cur_total += sum(self.watt[i]*t1/3600 for i in (0,1,2))
-            logger.info("%s: amp %.1f %s pf %.3f watt %.1f va %.1f sum %.1f",self.name,
-                self.amps, ','.join('%.2f' % x for x in self.amp),
-                self.factor_avg,self.watts,self.VAs,self.cur_total)
-            self.signal.send(self)
-
-            t1 = time()
-            try:
-                delay = cfg.get('interval',1) if self.in_use else cfg.get('idle',30)
-                await asyncio.wait_for(self._trigger.wait(), delay)
-            except asyncio.TimeoutError:
-                pass
-            else:
-                self._trigger.clear()
-            t1 = time()-t1
-
-Device.register("config","power", cls=str, doc="Power supply to use")
-Device.register("config","interval", cls=float, doc="delay between measurements")
-Device.register("config","idle", cls=float, doc="delay between measurements when the charger is not in use")
 Device.register("config","min", cls=float, doc="minimum power usage")
 Device.register("config","max", cls=float, doc="maximum power usage")
 

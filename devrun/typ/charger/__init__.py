@@ -107,16 +107,16 @@ class BaseDevice(_BaseDevice):
 
     def lock(self):
         self.want_lock = True
-        self.trigger.set()
+        self.trigger()
     def unlock(self):
         self.want_lock = False
-        self.trigger.set()
+        self.trigger()
     def disable(self):
         self.want_disable = True
-        self.trigger.set()
+        self.trigger()
     def enable(self):
         self.want_disable = False
-        self.trigger.set()
+        self.trigger()
 
     def took_action(self,act):
         """Call to update flags after doing something"""
@@ -200,7 +200,7 @@ class BaseDevice(_BaseDevice):
         assert value == 0 or value >= self.A_min
         assert value <= self.A_max
         self._A = value
-        self.trigger.set()
+        self.trigger()
 
     @property
     def charge_time(self):
@@ -215,14 +215,6 @@ class BaseDevice(_BaseDevice):
     @property
     def want_charging(self):
         return self._mode > CM.NEW and self._mode < CM.active
-
-    async def prepare(self):
-        """set up everything. Need to override."""
-        raise NotImplementedError("You need to override %s.prep()"%self.__class__.__name__)
-
-    async def step(self):
-        """Run a step of the state machine. Needs to call dispatch_actions()."""
-        raise NotImplementedError("You need to override %s.step()"%self.__class__.__name__)
 
     async def dispatch_actions(self):
         """State machine. Must be called from .step()"""
@@ -276,59 +268,52 @@ class BaseDevice(_BaseDevice):
     async def log_me(self):
         logger.debug("%s:%s Amp %.02f, ch %.01f %.1f",self.name, CM[self._mode],self.A, self.charge_time,self.charge_amount)
 
-    async def run(self):
-        logger.debug("%s: starting", self.name)
-        self.trigger = asyncio.Event(loop=self.cmd.loop)
+    async def prepare1(self):
+        await super().prepare1()
         cfg = self.loc.get('config',{})
 
         self.display_name = cfg.get('display',self.name)
         self.power = await self.cmd.reg.power.get(cfg['power'])
         self.meter = await self.cmd.reg.meter.get(cfg['meter'])
+        control = cfg.get('control',None)
+        if control is not None:
+            control = self.cmd.reg.control.get(control)
+        self.control = control
         self.signal = self.meter.signal
         
         self.A_max = cfg.get('A_max',32)
-        self.interval = cfg.get('interval',3)
 
-        await self.prepare()
-
+    async def prepare2(self):
         self.meter.register_charger(self)
         self.power.register_charger(self)
-        self.cmd.reg.charger[self.name] = self
-        logger.debug("Start: %s",self.name)
+        if self.control:
+            self.control.register_charger(self)
         self.send_alert = True
+        await super().prepare2()
 
-        while True:
-            self.mode = await self.read_mode()
-            await self.step()
+    async def step2(self):
+        if not self.send_alert and self._mode >= CM.charging:
+            if self.last_A != self._A and abs(self.last_A-self._A)/max(self.last_A,self._A) > 0.05:
+                self.send_alert = True
+            elif self.last_pf != self.meter.factor_avg and abs(self.last_pf-self.meter.factor_avg)/max(self.last_pf,self.meter.factor_avg) > 0.05:
+                self.send_alert = True
+            elif self.last_power != self.meter.watts and abs(self.last_power-self.meter.watts)/max(self.last_power,self.meter.watts) > 0.05:
+                self.send_alert = True
 
-            if not self.send_alert and self._mode >= CM.charging:
-                if self.last_A != self._A and abs(self.last_A-self._A)/max(self.last_A,self._A) > 0.05:
-                    self.send_alert = True
-                elif self.last_pf != self.meter.factor_avg and abs(self.last_pf-self.meter.factor_avg)/max(self.last_pf,self.meter.factor_avg) > 0.05:
-                    self.send_alert = True
-                elif self.last_power != self.meter.watts and abs(self.last_power-self.meter.watts)/max(self.last_power,self.meter.watts) > 0.05:
-                    self.send_alert = True
+        if self.send_alert or self.last_alert+5 < time():
+            # the 5 is hardcoded: 0.1 minutes are six seconds
+            self.last_alert = time()
 
-            if self.send_alert or last_alert+5 < time():
-                # the 5 is hardcoded: 0.1 minutes are six seconds
-                last_alert = time()
-
-                await self.log_me()
-                await self.cmd.amqp.alert("update.charger", _data=self.get_state())
-                self.last_A = self._A
-                self.last_pf = self.meter.factor_avg
-                self.last_power = self.meter.watts
-                self.send_alert = False
-
-            try:
-                await asyncio.wait_for(self.trigger.wait(), cfg.get('interval',1), loop=self.cmd.loop)
-            except asyncio.TimeoutError:
-                pass
-            else:
-                self.trigger.clear()
+            await self.log_me()
+            await self.cmd.amqp.alert("update.charger", _data=self.get_state())
+            self.last_A = self._A
+            self.last_pf = self.meter.factor_avg
+            self.last_power = self.meter.watts
+            self.send_alert = False
+        await super().step2()
 
 BaseDevice.register("config","display", cls=str, doc="Name to show in the GUI")
 BaseDevice.register("config","meter", cls=str, doc="Power meter to use, mandatory")
+BaseDevice.register("config","control", cls=str, doc="Power meter to use, mandatory")
 BaseDevice.register("config","power", cls=str, doc="Power supply to use, mandatory")
 BaseDevice.register("config","A_max", cls=float, doc="Maximum allowed current, mandatory")
-BaseDevice.register("config","interval", cls=float, doc="time between checks, default 1sec")

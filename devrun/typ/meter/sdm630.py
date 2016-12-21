@@ -37,13 +37,10 @@ This module interfaces to an SDM630 power meter via Modbus.
         n = len(rr.registers)
         return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
 
-    def trigger(self):
-        self._trigger.set()
-
     def register_charger(self,obj):
         assert self.charger is None
         self.charger = obj
-        self._trigger.set()
+        self.trigger()
 
     @property
     def in_use(self):
@@ -65,33 +62,25 @@ This module interfaces to an SDM630 power meter via Modbus.
         res['energy_total'] = self.cur_total
         return res
 
-    async def run(self):
-        self.signal = blinker.Signal()
-        self._trigger = asyncio.Event(loop=self.cmd.loop)
-        self.charger = None
-        self.cur_total = 0
-
-        self.amp = [0]*3
-        self.watt = [0]*3
-        self.VA = [0]*3
-        self.factor = [0]*3
-
-        cfg = self.loc.get('config',{})
+    async def prepare1(self):
+        await super().prepare1()
         ### auto mode
-        self.bus = await self.cmd.reg.bus.get(cfg['bus'])
-        self.adr = cfg['address']
-        self.power = await self.cmd.reg.power.get(cfg['power'])
-        self.phase1 = cfg.get('phase_offset',0)
+        self.bus = await self.cmd.reg.bus.get(self.cfg['bus'])
+        self.adr = self.cfg['address']
+        self.power = await self.cmd.reg.power.get(self.cfg['power'])
+        self.phase1 = int(self.cfg.get('phase_offset',0))
+        assert 0 <= self.phase1 <= 2
         self.phase2 = (self.phase1+1)%3
         self.phase3 = (self.phase2+1)%3
 
+    async def prepare2(self):
         val = await self.floats(172,1) # total
         self.last_total = abs(val[0])*1000
-        self.cmd.reg.meter[self.name] = self
+        await super().prepare2()
 
+    async def step1(self):
+        await super().step1()
         while True:
-            # the abs() calls are here because sometimes
-            # people connect their meters the wrong way
             try:
                 val = await self.floats(4,15) # current,power,VA
 
@@ -124,26 +113,13 @@ This module interfaces to an SDM630 power meter via Modbus.
 
                 val = await self.floats(172,1) # total
                 self.cur_total = abs(val[0])*1000 - self.last_total
-                logger.debug("%s: amp %.1f %s pf %.3f watt %.1f va %.1f sum %.1f",self.name,
-                    self.amps, ','.join('%.2f' % x for x in self.amp),
-                    self.factor_avg,self.watts,self.VAs,self.cur_total)
-                self.signal.send(self)
             except ModbusException as exc:
                 logger.warning("%s: %s from %s:%s",self.name,exc, self.bus.name,self.adr)
-                self._trigger.set()
-
-            try:
-                delay = cfg.get('interval',1) if self.in_use else cfg.get('idle',30)
-                await asyncio.wait_for(self._trigger.wait(), delay)
-            except asyncio.TimeoutError:
-                pass
             else:
-                self._trigger.clear()
+                return
 
 Device.register("config","bus", cls=str, doc="Bus to connect to")
 Device.register("config","address", cls=int, doc="This charger's address on the bus")
 Device.register("config","power", cls=str, doc="Power supply to use")
-Device.register("config","interval", cls=float, doc="delay between measurements")
-Device.register("config","idle", cls=float, doc="delay between measurements when (not in use)")
 Device.register("config","offset", cls=int, doc="phase offset (0,1,2)")
 

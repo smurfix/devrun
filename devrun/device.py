@@ -23,6 +23,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 class BaseDevice(object):
+    INTERVAL = 5
+
     _reg = {}
 
     def __init__(self, name,cmd,loc):
@@ -30,8 +32,48 @@ class BaseDevice(object):
         self.cmd = cmd
         self.loc = loc
 
-    async def run(self):
+    async def prepare1(self):
+        """Override me. Call me first!"""
+        self.cfg = self.loc.get('config',{})
+        logger.debug("%s: starting", self.name)
+        self._trigger = asyncio.Event(loop=self.cmd.loop)
+
+    def trigger(self):
+        """Run the next iteration of this device's loop now."""
+        self._trigger.set()
+
+    async def prepare2(self):
+        """Override me. Call me last!"""
+        getattr(self.cmd.reg,self.__module__.rsplit('.',2)[1])[self.name] = self
+        logger.debug("%s: running", self.name)
+
+    async def step1(self):
+        """Override me. Call me first!"""
         pass
+
+    async def step2(self):
+        """Override me. Call me last!"""
+        pass
+
+    @property
+    def interval(self):
+        return self.cfg.get('interval',self.INTERVAL)
+
+    async def run(self):
+
+        await self.prepare1()
+        await self.prepare2()
+
+        while True:
+            await self.step1()
+            await self.step2()
+
+            try:
+                await asyncio.wait_for(self._trigger.wait(), self.interval, loop=self.cmd.loop)
+            except asyncio.TimeoutError:
+                pass
+            else:
+                self._trigger.clear()
 
     @classmethod
     def register(_cls,*path,cls=None,doc=None):
@@ -69,6 +111,7 @@ class BaseDevice(object):
             res['doc'] = doc
         return res
 
+BaseDevice.register("config","interval", cls=float, doc="delay between measurements")
 
 class NotYetError(RuntimeError):
     pass
@@ -82,6 +125,7 @@ class Registry:
         Usage:
             Register:
                 reg.type[name] = dev
+                # BaseDevice.step2() does that for you
 
             Retrieve:
                 dev = await reg.type.get(name)
