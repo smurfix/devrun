@@ -145,7 +145,7 @@ as it exits when the client terminates.
                     finally:
                         self.req = None
                         self.req_msg = None
-                    break
+                        break
 
         logger.debug("Stop: %s",self.name)
         self.proto.transport.close()
