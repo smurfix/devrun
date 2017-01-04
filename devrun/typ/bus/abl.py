@@ -28,17 +28,25 @@ class NoData(RuntimeError):
 
 class EvcProtocol(asyncio.Protocol):
     buf = b''
+    timer = None
 
     def __init__(self, parent):
         self.parent = parent
+
+    def _flush(self):
+        self.buf = ''
+        self.timer = None
 
     def connection_made(self, transport):
         self.transport = transport
         self.parent.start(self)
 
     def data_received(self, data):
-        logger.debug("raw recv: %s",repr(data))
+        logger.info("raw recv: %s",repr(data))
         self.buf += data
+        if self.timer is not None:
+            self.timer.cancel()
+            self.timer = None
         while True:
             i = self.buf.find(b'\n')
             if i < 0:
@@ -49,15 +57,17 @@ class EvcProtocol(asyncio.Protocol):
                 if data:
                     logger.debug("recv: %s",data)
                     self.parent.msg_received(data)
+        if self.buf:
+            self.timer = self.parent.cmd.loop.call_later(0.5,self._flush)
 
     def send(self,req):
-        logger.debug("send: %s",str(req))
+        logger.info("send: %s",str(req))
         if not isinstance(req,bytes):
             req = req.bytes
         self.transport.write(req)
 
     def connection_lost(self, exc):
-        self.parent.stop()
+        self.parent.restart()
 
 class Device(BaseDevice):
     """ABL link"""
@@ -76,15 +86,15 @@ as it exits when the client terminates.
 
     proto = None
 
-    async def run(self):
-        logger.debug("Start: %s",self.name)
+    async def prepare1(self):
+        await super().prepare1()
         self.q = asyncio.Queue()
         self.connected = asyncio.Event(loop=self.cmd.loop)
         self.stats = Stats()
 
+    async def connect(self):
         try:
-            cfg = self.loc.get('config',{})
-            host = cfg['host']
+            host = self.cfg['host']
             if not host:
                 raise KeyError(host)
         except KeyError:
@@ -103,51 +113,57 @@ as it exits when the client terminates.
 
         await self.connected.wait()
         # ensure that line noise doesn't block anything
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.3, loop=self.cmd.loop)
         self.proto.transport.write(b'XXX\r\n')
-        await asyncio.sleep(0.5)
-        logger.debug("Running: %s",self.name)
-        self.cmd.reg.bus[self.name] = self
+        await asyncio.sleep(0.7, loop=self.cmd.loop)
 
-        while self.connected.is_set():
+    async def run(self):
+        await self.prepare1()
+        await self.connect()
+        await self.prepare2()
+
+        while True:
             d,f = await self.q.get()
             if d is None:
-                break
+                if f is None:
+                    break
+                await asyncio.sleep(0.5, loop=self.cmd.loop)
+
             self.req = asyncio.Future(loop=self.cmd.loop)
             self.req_msg = d
             async with self.stats:
                 retries = 0
-                while True:
+                while not f.done():
+                    if self.req.done():
+                        self.req = asyncio.Future(loop=self.cmd.loop)
+                    if not self.connected.is_set():
+                        await self.connect()
+                    if retries:
+                        logger.info("%s: Re-Sending %d %s", self.name,retries, repr(d))
                     self.proto.send(d)
                     try:
-                        res = await asyncio.wait_for(self.req, 0.5, loop=self.cmd.loop)
-                    except asyncio.TimeoutError:
+                        res = await asyncio.wait_for(self.req, 1.5, loop=self.cmd.loop)
+                    except asyncio.TimeoutError as exc:
+                        logger.info("%s: Timeout on %s", self.name,repr(d))
                         retries += 1
-                        if retries > 5:
-                            raise
+                        #if retries > 5:
+                        #    f.set_exception(exc)
+                        #    break
                         self.req_msg = None
-                        self.proto.send(b'\r\n')
-                        await asyncio.sleep(0.5)
-                        if self.req.done():
-                            self.req = asyncio.Future(loop=self.cmd.loop)
+                        self.proto.send(b'XXX\r\n')
+                        await asyncio.sleep(0.7, loop=self.cmd.loop)
                         self.req_msg = d
-                        continue
                     except Exception as exc:
-                        if not f.done():
-                            f.set_exception(exc)
+                        f.set_exception(exc)
                     except BaseException as exc:
-                        if not f.done():
-                            f.set_exception(exc)
+                        f.set_exception(exc)
                         raise
                     else:
-                        if not f.done():
-                            f.set_result(res)
-                    finally:
-                        self.req = None
-                        self.req_msg = None
-                        break
+                        f.set_result(res)
+                self.req = None
+                self.req_msg = None
 
-        logger.debug("Stop: %s",self.name)
+        logger.info("Stop: %s",self.name)
         self.proto.transport.close()
 
     def get_stats(self):
@@ -158,8 +174,12 @@ as it exits when the client terminates.
         self.connected.set()
 
     def stop(self):
-        logger.debug("Stopping: %s",self.name)
+        logger.info("Stopping: %s",self.name)
         self.q.put((None,None))
+
+    def restart(self):
+        logger.info("Restarting: %s",self.name)
+        # self.q.put((None,True))
 
     def msg_received(self,d):
         r,self.req_msg = self.req_msg,None
@@ -170,7 +190,6 @@ as it exits when the client terminates.
                 self.req.set_result(d)
             else:
                 self.req.set_exception(NoData(r.nr))
-            return
 
     async def do_request(self,d):
         assert isinstance(d,Request)
