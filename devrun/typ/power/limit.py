@@ -204,7 +204,7 @@ current.
         return self._chargers.values()
 
     async def prepare1(self):
-        super().prepare1()
+        await super().prepare1()
         self.prio = tuple(p() for p in prio)
         self.A_max = self.cfg['A_max']
         self.ramp_up = self.cfg.get('ramp_up',5*60)
@@ -213,8 +213,8 @@ current.
         self.q = asyncio.Queue()
 
     async def run(self):
-        await super().prepare1()
-        await super().prepare2()
+        await self.prepare1()
+        await self.prepare2()
 
         while True:
             cmd,obj = await self.q.get()
