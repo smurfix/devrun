@@ -143,7 +143,7 @@ as it exits when the client terminates.
                     self.proto.send(d)
                     try:
                         res = await asyncio.wait_for(self.req, 1.5, loop=self.cmd.loop)
-                    except asyncio.TimeoutError as exc:
+                    except (asyncio.TimeoutError,NoData) as exc:
                         logger.info("%s: Timeout on %s", self.name,repr(d))
                         retries += 1
                         #if retries > 5:
@@ -189,7 +189,8 @@ as it exits when the client terminates.
             if r.nr == d.nr and r.a == d.a:
                 self.req.set_result(d)
             else:
-                self.req.set_exception(NoData(r.nr))
+                pass ## XXX timeout will catch this?
+                #self.req.set_exception(NoData(r.nr))
 
     async def do_request(self,d):
         assert isinstance(d,Request)
