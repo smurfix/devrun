@@ -291,6 +291,10 @@ class BaseDevice(_BaseDevice):
         self.send_alert = True
         await super().prepare2()
 
+    async def step1(self):
+        await super().step1()
+        self.mode = await self.read_mode()
+
     async def step2(self):
         if not self.send_alert and self._mode >= CM.charging:
             if self.last_A != self._A and abs(self.last_A-self._A)/max(self.last_A,self._A) > 0.05:
