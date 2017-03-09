@@ -57,7 +57,7 @@
                   ='%.1f'|format(v.amp_avail)
               -else
                 %td class="num-right f2"
-                  –
+                  ='(%.1f)'|format(v.amp_avail)
               -if v.charging
                 %td class="num-right f3"
                   ='%.2f'|format(v.amp)

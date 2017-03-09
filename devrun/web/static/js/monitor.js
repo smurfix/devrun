@@ -40,7 +40,7 @@
 					if (m.charging || m.connected) {
 					    f.find('.f2').text(m.amp_avail.toFixed(1));
 					} else {
-						f.find('.f2').text('–');
+					    f.find('.f2').text('('+m.amp_avail.toFixed(1)+')');
 					}
 					if (m.charging) {
 					    f.find('.f3').text(m.amp.toFixed(2));
