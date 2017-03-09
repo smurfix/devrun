@@ -84,14 +84,16 @@ This module interfaces to an ABL Sursum-style charger.
     async def take_action(self,act):
         if act == CA.disable:
             await self.query(RT.enter_Ax)
-        elif act == CA.enable or act == CA.thaw:
+        elif act == CA.enable: ## or act == CA.thaw:
             await self.query(RT.leave_Ax)
+        elif act == CA.defer:
+            await self.query(RT.set_brk)
         elif act == CA.lock:
             pass
         elif act == CA.unlock:
             pass
         elif act == CA.allow:
-            await self.query(RT.set_brk)
+            await self.query(RT.clear_brk)
         elif act == CA.unlock:
             await self.query(RT.set_pwm, pwm(self.A))
             await self.query(RT.clear_brk)
