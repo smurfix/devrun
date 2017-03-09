@@ -34,7 +34,7 @@ class EvcProtocol(asyncio.Protocol):
         self.parent = parent
 
     def _flush(self):
-        self.buf = ''
+        self.buf = b''
         self.timer = None
 
     def connection_made(self, transport):
