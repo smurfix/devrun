@@ -45,7 +45,7 @@ run
                 pass
             except Exception:
                 print_exc()
-            finally:
+            except BaseException: # stop
                 self.endit.set()
 
         for cls,devs in self.cfg['devices'].items():
