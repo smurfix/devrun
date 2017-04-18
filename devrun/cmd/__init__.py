@@ -65,6 +65,13 @@ class BaseCommand:
         if 'amqp' in cfg:
             self.amqp = await qbroker.make_unit(self.name if self.cmdname == 'run' else '%s.%s'%(self.name,self.cmdname), amqp=cfg['amqp'])
     
+        if 'etcd' in cfg:
+            from etcd_tree import client
+            self.etcd = await client(self.cfg, loop=self.loop)
+            if 'root' in cfg['etcd']:
+                self.tree = await etc.tree(cfg['etcd']['root'], immediate=None)
+                self.tree = await self.tree.lookup(*cfg.get('global',{}).get('prefix',"").split('.'))
+
     async def run(self):
         raise NotImplementedError("You need to override .run()")
 
