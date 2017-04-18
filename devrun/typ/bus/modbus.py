@@ -43,7 +43,7 @@ or to a remote modbus gateway.
         logger.debug("Start: %s",self.name)
 
         try:
-            cfg = self.loc.get('config',{})
+            cfg = self.cfg
             host = cfg['host']
             if not host:
                 raise KeyError(host)

@@ -134,7 +134,7 @@ This module interfaces to an ABL Sursum-style charger.
 
     async def prepare1(self):
         await super().prepare1()
-        cfg = self.loc.get('config',{})
+        cfg = self.cfg
         mode = cfg.get('mode','auto')
         if mode == "manual":
             await self.prep_manual(cfg)

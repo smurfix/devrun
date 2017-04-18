@@ -269,7 +269,7 @@ class BaseDevice(_BaseDevice):
 
     async def prepare1(self):
         await super().prepare1()
-        cfg = self.loc.get('config',{})
+        cfg = self.cfg
 
         self.display_name = cfg.get('display',self.name)
         self.power = await self.cmd.reg.power.get(cfg['power'])

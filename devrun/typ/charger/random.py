@@ -59,7 +59,7 @@ This module implements a dummy charger which is randomly turning itself on and o
         await super().prepare1()
         self.rand = Random()
 
-        cfg = self.loc.get('config',{})
+        cfg = self.cfg
         self.signal = self.meter.signal
         logger.debug("%s: got meter %s", self.name,self.meter.name)
         self.threshold = cfg.get('threshold',10)
