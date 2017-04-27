@@ -146,9 +146,9 @@ as it exits when the client terminates.
                     except (asyncio.TimeoutError,NoData) as exc:
                         logger.info("%s: Timeout on %s", self.name,repr(d))
                         retries += 1
-                        #if retries > 5:
-                        #    f.set_exception(exc)
-                        #    break
+                        if retries > 5:
+                            f.set_exception(exc)
+                            break
                         self.req_msg = None
                         self.proto.send(b'XXX\r\n')
                         await asyncio.sleep(0.7, loop=self.cmd.loop)
