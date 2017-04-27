@@ -73,9 +73,9 @@ class Stats:
         return dict(
             n=self.n,
             t=t-self.first,
-            load_all=self.nt/(t-self.first),
+            load_all=self.nt/(t-self.first) if t>self.first else 0,
             time_all=t-self.first,
-            load_now=self.time_per_msg/self.time_inter_msg,
+            load_now=self.time_per_msg/self.time_inter_msg if self.time_inter_msg else 0,
             last_call=t-self.latest,
             )
 
