@@ -43,10 +43,10 @@ run
                 f.result()
             except asyncio.CancelledError:
                 pass
-            except Exception:
-                print_exc()
-            finally:
+            except KeyboardInterrupt:
                 self.endit.set()
+            except BaseException:
+                print_exc()
 
         for cls,devs in self.cfg['devices'].items():
             if not isinstance(devs,Mapping):
