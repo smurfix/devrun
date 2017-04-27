@@ -100,7 +100,7 @@ class BaseDevice(_BaseDevice):
     disabled=False
     thrown=False # cleared when throw succeeds
     locked=False
-    deferred=False
+    deferred=None
 
     want_lock=False
     want_disable=False
@@ -237,7 +237,7 @@ class BaseDevice(_BaseDevice):
 
         ## Power available?
         if self._A == 0: # no
-            if not self.deferred:
+            if self.deferred is not True:
                 if self._mode > CM.NEW: # throw off
                     await self.take_action(CA.throw)
                 await self.take_action(CA.defer)
@@ -245,7 +245,7 @@ class BaseDevice(_BaseDevice):
             if self.A_sent > self._A or self.A_sent < self._A*0.98:
                 # don't update for a more-than-modest increase
                 await self.set_available(self._A)
-            if self.deferred:
+            if self.deferred is not False:
                 await self.take_action(CA.allow)
 
         ## May connect a car?
