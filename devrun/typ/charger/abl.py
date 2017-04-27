@@ -37,6 +37,7 @@ modemap = {
     RM.C: CM.active,
     RM.D: CM.active,
     RM.Bx: CM.done,
+    RM.B0: CM.waiting,
     RM.B1: CM.waiting,
     RM.Ax: CM.disabled,
 

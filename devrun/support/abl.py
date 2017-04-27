@@ -117,6 +117,7 @@ class RT:
 @rev
 class RM:
     A = 0
+    B0 = 3 ## hmmm
     B2 = 4
     C = 5
     D = 6
