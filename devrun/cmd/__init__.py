@@ -69,8 +69,11 @@ class BaseCommand:
             from etcd_tree import client
             self.etcd = await client(self.cfg, loop=self.loop)
             if 'root' in cfg['etcd']:
-                self.tree = await etc.tree(cfg['etcd']['root'], immediate=None)
-                self.tree = await self.tree.lookup(*cfg.get('global',{}).get('prefix',"").split('.'))
+                self.etcd_root = await self.etcd.tree(cfg['etcd']['root'], immediate=None)
+                self.tree = await self.etcd_root.subdir(*cfg.get('global',{}).get('prefix',"").split('.'), create=None,recursive=True)
+                for k,v in cfg.items():
+                    await self.tree.set(k,v)
+            self.cfg = self.tree
 
     async def run(self):
         raise NotImplementedError("You need to override .run()")
