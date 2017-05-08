@@ -32,6 +32,12 @@ class BaseDevice(object):
         self.cmd = cmd
         self.loc = loc
 
+    def __repr__(self):
+        try:
+            return "‹%s:%s›" % (self.__class__.__module__.replace("devrun.",""),self.name)
+        except AttributeError:
+            return "‹%s:?›" % (self.__class__.__module__,)
+
     async def prepare1(self):
         """Override me. Call me first!"""
         self.cfg = self.loc.get('config',{})
