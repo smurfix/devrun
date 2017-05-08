@@ -102,6 +102,9 @@ This module interfaces to an ABL Sursum-style charger.
         elif act == CA.unlock:
             await self.query(RT.set_pwm, pwm(self.A))
             await self.query(RT.clear_brk)
+        elif act == CA.throw:
+            ## defer is called also ##
+            await self.query(RT.enter_Ax)
         else:
             raise NotImplementedError(CA[act])
         self.took_action(act)
