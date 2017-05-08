@@ -103,7 +103,7 @@ This module implements a dummy charger which is randomly turning itself on and o
         if self.new_mode != CM.unknown:
             m,self.new_mode = self.new_mode,CM.unknown
             return m
-        if self._mode == CM.disabled and self.disabled:
+        if self._mode == CM.disabled and self.disabled is True:
             return self._mode
         for k,v in ModeMap.get(self._mode,{}).items():
             if not self.rand.randrange(v):

@@ -97,7 +97,7 @@ class BaseDevice(_BaseDevice):
     charge_exit = 0 # meter at end, Wh
 
     # state flags. See CA.
-    disabled=False
+    disabled=None
     thrown=False # cleared when throw succeeds
     locked=False
     deferred=None
@@ -130,7 +130,7 @@ class BaseDevice(_BaseDevice):
         elif act == CA.defer:
             self.deferred = True
         elif act == CA.enable:
-            self.disable = False
+            self.disabled = False
         elif act == CA.unlock:
             self.locked = False
         elif act == CA.allow:
@@ -222,14 +222,14 @@ class BaseDevice(_BaseDevice):
 
         if not self.thrown:
             if self.want_disable:
-                if not self.disabled:
+                if self.disabled is not True:
                     await self.take_action(CA.disable)
             else:
-                if self.disabled:
+                if self.disabled is not False:
                     await self.take_action(CA.enable)
 
         if self._mode == CM.disabled:
-            if self.disabled:
+            if self.disabled is True:
                 self.thrown = False
             elif self.thrown:
                 self.thrown = False
@@ -261,8 +261,9 @@ class BaseDevice(_BaseDevice):
             If not, don't bother allocating power to it"""
         if self._mode > CM.NEW:
             return True
-        if self._mode < CM.disabled or self.disabled:
+        if self._mode < CM.disabled or self.disabled is True:
             return False
+        return True
 
     async def log_me(self):
         logger.debug("%s:%s Amp %.02f, ch %.01f %.1f",self.name, CM[self._mode],self.A, self.charge_time,self.charge_amount)
