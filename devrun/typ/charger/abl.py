@@ -86,7 +86,11 @@ This module interfaces to an ABL Sursum-style charger.
         if act == CA.disable:
             await self.query(RT.enter_Ax)
         elif act == CA.enable: ## or act == CA.thaw:
-            await self.query(RT.leave_Ax)
+            await self.query(RT.clear_brk)
+            try:
+                await self.query(RT.leave_Ax)
+            except ValueError:
+                pass
         elif act == CA.defer:
             await self.query(RT.set_brk)
         elif act == CA.lock:
