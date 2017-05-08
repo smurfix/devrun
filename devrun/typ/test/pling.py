@@ -27,7 +27,7 @@ It prints 'Ping from ‹name›' every second, or however often you set it to.
 
     q = None
     async def run(self):
-        cfg = self.loc.get('config',{})
+        cfg = self.cfg
         w = cfg.get('want',None)
         await asyncio.sleep(cfg.get('delay',5))
         if w is not None:
