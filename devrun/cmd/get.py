@@ -13,16 +13,9 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 ## Thus, please do not remove the next line, or insert any blank lines.
 ##BP
 
-import sys
-import asyncio
-from collections.abc import Mapping
-from qbroker.unit import CC_DICT
 from pprint import pprint
 
 from . import BaseCommand
-from devrun.util import objects, import_string
-from devrun.typ import BaseType
-from devrun.etcd.types import EvcDevice
 
 class Command(BaseCommand):
     "Send a 'get' RPC message, print the result"

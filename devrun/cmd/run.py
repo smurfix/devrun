@@ -21,9 +21,7 @@ from collections.abc import Mapping
 from qbroker.unit import CC_DICT
 
 from . import BaseCommand, CMD_TYPES
-from devrun.util import objects, import_string
-from devrun.typ import BaseType
-from devrun.etcd.types import EvcDevice
+from devrun.util import import_string
 
 class Command(BaseCommand):
     "Run the whole system"
