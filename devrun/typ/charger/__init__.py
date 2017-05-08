@@ -75,7 +75,7 @@ class BaseDevice(_BaseDevice):
     name = display_name = "‹starting up›"
     _mode = last_mode = force_mode = CM.unknown
     _A = 0
-    A_min = 10 # override, possibly
+    A_min = 0 # override, possibly
 
     A_sent = 0 # last set A value
 
@@ -273,6 +273,7 @@ class BaseDevice(_BaseDevice):
         cfg = self.loc.get('config',{})
 
         self.display_name = cfg.get('display',self.name)
+        self.A_min = cfg.get('A_min',0)
         self.power = await self.cmd.reg.power.get(cfg['power'])
         self.meter = await self.cmd.reg.meter.get(cfg['meter'])
         control = cfg.get('control',None)

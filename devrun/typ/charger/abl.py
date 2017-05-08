@@ -155,7 +155,7 @@ This module interfaces to an ABL Sursum-style charger.
         logger.debug("%s: got bus %s", self.name,self.bus.name)
         self.adr = cfg['address']
         self.threshold = cfg.get('threshold',10)
-        self.A_min = 6
+        self.A_min = max(self.A_min,6)
         self.A = self.A_min
 
         self.mode = await self.read_mode()
