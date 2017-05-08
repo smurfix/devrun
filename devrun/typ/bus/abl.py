@@ -42,7 +42,7 @@ class EvcProtocol(asyncio.Protocol):
         self.parent.start(self)
 
     def data_received(self, data):
-        logger.info("raw recv: %s",repr(data))
+        # logger.info("raw recv: %s",repr(data))
         self.buf += data
         if self.timer is not None:
             self.timer.cancel()
@@ -61,7 +61,7 @@ class EvcProtocol(asyncio.Protocol):
             self.timer = self.parent.cmd.loop.call_later(0.5,self._flush)
 
     def send(self,req):
-        logger.info("send: %s",str(req))
+        # logger.info("send: %s",str(req))
         if not isinstance(req,bytes):
             req = req.bytes
         self.transport.write(req)
