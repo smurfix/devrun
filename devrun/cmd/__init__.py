@@ -43,6 +43,8 @@ class BaseCommand:
     cfg = None
     amqp = None
     name = None
+    etcd = None
+    tree = None
 
     def __init__(self, opt):
         self.opt = opt
@@ -66,19 +68,19 @@ class BaseCommand:
             self.amqp = await qbroker.make_unit(self.name if self.cmdname == 'run' else '%s.%s'%(self.name,self.cmdname), amqp=cfg['amqp'])
     
         if 'etcd' in cfg:
-            from etcd_tree import client
+            from etcd_tree import client, EtcAwaiter
             self.etcd = await client(self.cfg, loop=self.loop)
-            if 'root' in cfg['etcd']:
-                self.etcd_root = await self.etcd.tree(cfg['etcd']['root'], immediate=None)
-                self.tree = await self.etcd_root.subdir(*cfg.get('global',{}).get('prefix',"").split('.'), create=None,recursive=True)
-                for k,v in cfg.items():
-                    await self.tree.set(k,v)
+            self.tree = await self.etcd.tree('/', immediate=True)
+            for k,v in self.cfg.items():
+                await self.tree.set(k,v)
             self.cfg = self.tree
 
     async def run(self):
         raise NotImplementedError("You need to override .run()")
 
     async def stop(self):
+        if self.etcd is not None:
+            await self.etcd.stop()
         if self.amqp is not None:
             await self.amqp.stop()
 
