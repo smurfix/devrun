@@ -65,16 +65,13 @@ class SubRun:
         self._started = False
 
 class MyRun:
-    @property
-    def job_done(self):
-        def done_fn(f):
-            if f.cancelled():
-                return
-            try:
-                f.result()
-            except Exception:
-                print_exc()
-        return done_fn
+    def job_done(self,f):
+        if f.cancelled():
+            return
+        try:
+            f.result()
+        except Exception:
+            print_exc()
 
     async def run(self):
         raise RuntimeError("You need to define .run()")
