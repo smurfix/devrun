@@ -73,7 +73,7 @@ class MyRun:
         except Exception:
             print_exc()
 
-    async def run(self):
+    async def run(self, *a,**k):
         raise RuntimeError("You need to define .run()")
 
     async def start(self):
