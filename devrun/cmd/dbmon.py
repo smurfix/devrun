@@ -77,8 +77,9 @@ dbmon
                     doc = None
             if doc:
                 _id = doc['_id']
-                res = await self.db.replace_one({'_id': _id}, body)
+                res = await self.db.update({'_id': _id}, body)
             else:
+                body['timestamp_first'] = body['timestamp']
                 res = await self.db.insert_one(body)
             print(body['type'],body['name'],body['state'],res)
 
