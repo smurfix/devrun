@@ -17,9 +17,11 @@
 			li.text(m);
 			inf.prepend(li);
 			$('#page').scrollTop(0);
-			setTimeout(function(){ 
-				$('#alert-'+n).alert('close')
-			}, 2000);
+			if (c != "danger") {
+				setTimeout(function(){ 
+					$('#alert-'+n).alert('close')
+				}, 2000);
+			}
 		}
 		//$('form#sender').submit(function(event){
 		//	ws.send(JSON.stringify({"type":["note"],"data": $('input#data').val() }));
