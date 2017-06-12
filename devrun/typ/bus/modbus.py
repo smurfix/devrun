@@ -62,7 +62,6 @@ or to a remote modbus gateway.
             self.proto = ReconnectingAsyncioModbusTcpClient()
             await self.proto.start(host,port)
 
-        self.cmd.reg.bus[self.name] = self
         await self.prepare2()
 
         await self.end.wait()
