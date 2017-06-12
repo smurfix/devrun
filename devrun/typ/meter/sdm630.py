@@ -82,24 +82,29 @@ This module interfaces to an SDM630 power meter via Modbus.
         await super().step1()
         while True:
             try:
-                val = await self.floats(4,15) # current,power,VA
+                val = await self.floats(1,18) # current,power,VA
 
-                self.amp[0] = abs(val[self.phase1])
-                self.amp[1] = abs(val[self.phase2])
-                self.amp[2] = abs(val[self.phase3])
+                self.volt[0] = abs(val[0+self.phase1])
+                self.volt[1] = abs(val[0+self.phase2])
+                self.volt[2] = abs(val[0+self.phase3])
+                self.volts = sum(self.volt)/3
+
+                self.amp[0] = abs(val[3+self.phase1])
+                self.amp[1] = abs(val[3+self.phase2])
+                self.amp[2] = abs(val[3+self.phase3])
                 self.amp_max = max(self.amp)
 
-                self.watt[0] = abs(val[3+self.phase1])
-                self.watt[1] = abs(val[3+self.phase2])
-                self.watt[2] = abs(val[3+self.phase3])
+                self.watt[0] = abs(val[6+self.phase1])
+                self.watt[1] = abs(val[6+self.phase2])
+                self.watt[2] = abs(val[6+self.phase3])
 
-                self.VA[0] = abs(val[6+self.phase1])
-                self.VA[1] = abs(val[6+self.phase2])
-                self.VA[2] = abs(val[6+self.phase3])
+                self.VA[0] = abs(val[9+self.phase1])
+                self.VA[1] = abs(val[9+self.phase2])
+                self.VA[2] = abs(val[9+self.phase3])
 
-                self.factor[0] = abs(val[12+self.phase1])
-                self.factor[1] = abs(val[12+self.phase2])
-                self.factor[2] = abs(val[12+self.phase3])
+                self.factor[0] = abs(val[15+self.phase1])
+                self.factor[1] = abs(val[15+self.phase2])
+                self.factor[2] = abs(val[15+self.phase3])
                 asum = sum(self.amp)
                 if asum == 0:
                     self.factor_avg = 1

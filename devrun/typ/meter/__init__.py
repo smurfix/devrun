@@ -33,11 +33,13 @@ class Type(BaseType):
 
 class BaseDevice(_BaseDevice):
     def __init__(self, *a,**k):
+        self.volt = [0]*3
         self.amp = [0]*3
         self.watt = [0]*3
         self.VA = [0]*3
         self.factor = [0]*3
 
+        self.volts = 0
         self.amps = 0
         self.amp_max = 0
         self.watts = 0
@@ -78,8 +80,8 @@ class BaseDevice(_BaseDevice):
         self.t1 = t2
 
     async def step2(self):
-        logger.debug("%s: amp %.1f %s pf %.3f watt %.1f va %.1f sum %.1f",self.name,
-            self.amps, ','.join('%.2f' % x for x in self.amp),
+        logger.debug("%s: %.1f V, %.1f A %s pf %.3f watt %.1f va %.1f sum %.1f",self.name,
+            self.volts, self.amps, ','.join('%.2f' % x for x in self.amp),
             self.factor_avg,self.watts,self.VAs,self.cur_total)
         await super().step2()
         self.signal.send(self)
