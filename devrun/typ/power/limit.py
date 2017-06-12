@@ -197,7 +197,7 @@ current.
                 k.A = k.__assigned
 
     def has_values(self, obj):
-        assert obj.name in self._chargers
+        # assert obj.name in self._chargers
         self.update_available()
 
     def register_charger(self, obj):
