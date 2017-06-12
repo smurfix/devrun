@@ -216,16 +216,21 @@ current.
         self._chargers = {}
         self.q = asyncio.Queue()
 
+    async def do_cmd(self, cmd,obj):
+        if cmd == 'reg':
+            logger.debug("Reg: charger %s",obj.name)
+            self._chargers[obj.name] = obj
+            obj.signal.connect(self.has_values)
+        else:
+            print("Unknown command",cmd,obj)
+
     async def run(self):
         await self.prepare1()
         await self.prepare2()
 
         while True:
             cmd,obj = await self.q.get()
-            if cmd == 'reg':
-                logger.debug("Reg: charger %s",obj.name)
-                self._chargers[obj.name] = obj
-                obj.signal.connect(self.has_values)
+            await self.do_cmd(cmd,obj)
 
 Device.register("config","A_max", cls=float, doc="Maximum allowed current, required")
 Device.register("config","ramp_up", cls=float, doc="charge time with full power, default 5min")
