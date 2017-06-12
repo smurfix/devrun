@@ -71,10 +71,6 @@ class BaseDevice(_BaseDevice):
             return self.cfg.get('idle',30)
         return super().interval
 
-    async def prepare1(self):
-        await super().prepare1()
-        self.power = await self.cmd.reg.power.get(self.cfg['power'])
-
     async def prepare2(self):
         self.loop_time = 0
         await super().prepare2()

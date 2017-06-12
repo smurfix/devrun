@@ -60,7 +60,6 @@ This module interfaces to an SDM630 power meter via Modbus.
         ### auto mode
         self.bus = await self.cmd.reg.bus.get(self.cfg['bus'])
         self.adr = self.cfg['address']
-        self.power = await self.cmd.reg.power.get(self.cfg['power'])
         self.phase1 = int(self.cfg.get('phase_offset',0))
         assert 0 <= self.phase1 <= 2
         self.phase2 = (self.phase1+1)%3
