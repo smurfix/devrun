@@ -70,18 +70,44 @@ dbmon
             except KeyError:
                 pprint(body)
                 return
-            doc = await curs.to_list(length=1)
+            body['change_a'] = 0
+            body['change_b'] = 0
+            doc = await curs.to_list(length=2)
+            dr="update"
             if doc:
+                if len(doc) > 1:
+                    ts = doc[1]['timestamp']
+                else:
+                    ts = doc[0]['timestamp']
                 doc = doc[0]
+                _id = doc['_id']
+                print("*",body['name'], doc['state'], doc['timestamp'], body['timestamp'])
                 if doc['state'] != body['state']:
+                    await self.db.update({'_id': _id},{"$set":{"change_b":1}})
+                    dr = "state %s %s" % (doc['state'], body['state'])
+                    doc = False
+                elif doc.get('change_a',True) or (body['state'] == 'charging' and ts < body['timestamp']-5*60):
+                    # We need another entry if the one we found was the first
+                    # Also, when charging store an update every 5min
+                    body['timestamp_first'] = doc.get('timestamp_first',doc['timestamp'])
+                    if doc.get('change_a',True):
+                        dr="change_a"
+                    else:
+                        dr="5min"
                     doc = None
+            else:
+                dr="notfound"
+                doc = False
+            # otherwise doc is an empty list
+            if doc is False: # i.e. a real state change
+                body['change_a'] = 1
+
             if doc:
                 _id = doc['_id']
                 res = await self.db.update({'_id': _id}, body)
             else:
-                body['timestamp_first'] = body['timestamp']
                 res = await self.db.insert_one(body)
-            print(body['type'],body['name'],body['state'],res)
+            print(body['type'],body['name'],body['state'],body['change_a'],body['timestamp'],dr,res)
 
             #if properties.content_type == 'application/json' or properties.content_type.startswith('application/json+'):
 
