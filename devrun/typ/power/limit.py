@@ -138,12 +138,16 @@ current.
             if not k.charging and not k.want_charging:
                 yield k
 
+    @property
+    def A_avail(self):
+        return self.A_max
+
     def update_available(self):
         """Update my chargers' available current."""
         ## TODO: consider the three phases separately
 
         # We have this much current, total
-        Aavail = self.A_max
+        Aavail = self.A_avail
         print()
 
         # Clear the power assigned to the chargers
