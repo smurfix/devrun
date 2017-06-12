@@ -46,8 +46,8 @@
               %br
               min
         %tbody
-          -for n,v in charger.items()
-            %tr id='charger_{{n}}'
+          -for v in charger
+            %tr id='charger_{{v["name"]}}'
               %th scope="row"
                 =v.display_name
               %td class="f1"

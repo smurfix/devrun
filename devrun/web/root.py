@@ -38,4 +38,5 @@ class RootView(BaseView):
     async def get(self):
         qb = self.request.app['devrun.cmd'].amqp
         x = await qb.rpc('info', _cmd='state',_subsys='charger')
+        x = sorted(x.values(), key=lambda x: x['display_name'])
         return {'foo':'bar','charger':x, 'host':self.request.headers['host']}
