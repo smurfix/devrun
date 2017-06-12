@@ -59,6 +59,13 @@ class BaseDevice(_BaseDevice):
         self.trigger()
 
     @property
+    def in_use(self):
+        if self.charger is None:
+            return False
+        else:
+            return self.charger.charging
+
+    @property
     def interval(self):
         if not self.in_use:
             return self.cfg.get('idle',30)

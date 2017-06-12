@@ -47,13 +47,6 @@ The typical current level is 90% of the allowed range.
         self.charger = obj
         self.trigger()
 
-    @property
-    def in_use(self):
-        if self.charger is None:
-            return False
-        else:
-            return self.charger.charging
-
     def get_state(self):
         res = super().get_state()
         res['amps'] = self.amp
