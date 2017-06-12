@@ -55,7 +55,7 @@ dbmon
         self.db = self.coll[cfg['prefix']+'raw']
         await self.db.ensure_index((('type',ASCENDING),('name',ASCENDING),('timestamp',ASCENDING)),unique=True,name='primary')
 
-        await self.amqp.register_alert_async('#', self.callback, durable='log_mongodb', call_conv=CC_MSG)
+        await self.amqp.register_alert_async('update.charger', self.callback, durable='log_mongodb', call_conv=CC_MSG)
 
         while True:
             await asyncio.sleep(9999,loop=self.loop)
