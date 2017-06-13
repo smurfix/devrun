@@ -18,11 +18,12 @@ import asyncio
 import inspect
 
 from devrun.util import objects, import_string
+from devrun.etcd.types import EvcDevice
 
 import logging
 logger = logging.getLogger(__name__)
 
-class BaseDevice(object):
+class BaseDevice(EvcDevice):
     INTERVAL = 5
 
     _reg = {}
@@ -82,29 +83,13 @@ class BaseDevice(object):
                 self._trigger.clear()
 
     @classmethod
-    def register(_cls,*path,cls=None,doc=None):
-        r = _cls._reg
-        for p in path:
-            assert p
-            assert '' not in r
-            if p not in r:
-                r[p] = {}
-            r = r[p]
-        r[''] = cls
-        r['doc'] = doc
-
-    @classmethod
     def registrations(cls):
         """Lists path,type,docstr of variables"""
-        r = cls._reg
-        def get(p,r):
-            for a,b in r.items():
-                cls = b.get('',None)
-                if cls is None:
-                    yield from get(p+(a,),b)
-                else:
-                    yield p+(a,),cls,b['doc']
-        return get((),r)
+        seen = set()
+        for k,v,d in super().registrations():
+            if k not in seen:
+                yield k,v,d
+            seen.add(k)
 
     @property
     def schema(self):
