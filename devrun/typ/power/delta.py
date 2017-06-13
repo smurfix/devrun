@@ -32,6 +32,7 @@ current, subject to availability.
     async def prepare1(self):
         await super().prepare1()
         self.P_max = self.cfg['P_max']*1000
+        self.A_min = self.cfg.get('A_min',0)
         self.dampen = self.cfg.get('dampen',0.1)
         assert 0 < self.dampen < 1, "Damping factor must be between zero and one"
         self.meter = await self.cmd.reg.meter.get(self.cfg['meter'])
@@ -58,9 +59,9 @@ current, subject to availability.
         Aavail = (self.P_max - self.P_now) / self.meter.volts / 3
         if t:
             print("*** avail:",Aavail,self.A_max,P_now,self.P_now,self.meter.watts)
-        return min(Aavail,self.A_max)
+        return max(self.A_min,min(Aavail,self.A_max))
 
-Device.register("config","A_max", cls=float, doc="Maximum allowed current (A), required")
+Device.register("config","A_min", cls=float, doc="Minimum allowed current (A)")
 Device.register("config","P_max", cls=float, doc="Maximum allowed power (kWh), required")
-Device.register("config","dampen", cls=float, doc="Moving average for power")
+Device.register("config","dampen", cls=float, doc="Moving average scaler for power, default 0.1")
 
