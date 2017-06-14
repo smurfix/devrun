@@ -71,7 +71,7 @@ or to a remote modbus gateway.
 
     def stop(self):
         logger.debug("Stopping: %s",self.name)
-        self.event.set()
+        self.end.set()
 
     async def execute(self,request):
         async with self.stats:
