@@ -65,18 +65,15 @@ class SubRun:
         self._started = False
 
 class MyRun:
-    @property
-    def job_done(self):
-        def done_fn(f):
-            if f.cancelled():
-                return
-            try:
-                f.result()
-            except Exception:
-                print_exc()
-        return done_fn
+    def job_done(self,f):
+        if f.cancelled():
+            return
+        try:
+            f.result()
+        except Exception:
+            print_exc()
 
-    async def run(self):
+    async def run(self, *a,**k):
         raise RuntimeError("You need to define .run()")
 
     async def start(self):
@@ -89,7 +86,7 @@ class MyRun:
         self._job.cancel()
         self._job.add_done_function(self.job_done)
         self._job = None
-        
+
     def has_update(self):
         super().has_update()
         if self._job is not None:
@@ -155,7 +152,7 @@ class EvcRoot(SubRun,EtcRoot):
         except KeyError: # does not exist yet
             pass
         await super().init()
-    
+
     async def _start_run(self):
         while True:
             x = self._start_q.get()

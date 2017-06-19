@@ -74,7 +74,7 @@ class App:
 
         self.handler = self.app.make_handler()
         self.srv = await self.loop.create_server(self.handler, bindto,port)
-        logger.info('serving on %s', self.srv.sockets[0].getsockname())
+        logger.debug('serving on %s', self.srv.sockets[0].getsockname())
 
     async def stop(self):
         if self.srv is not None:

@@ -1,4 +1,7 @@
 attr
 qbroker
-etcd_tree
 asyncio_dispatch
+blinker
+jinja2
+hamlish_jinja
+aiohttp_jinja2

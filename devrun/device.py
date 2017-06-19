@@ -19,7 +19,12 @@ import inspect
 
 from devrun.util import objects, import_string
 
+import logging
+logger = logging.getLogger(__name__)
+
 class BaseDevice(object):
+    INTERVAL = 5
+
     _reg = {}
 
     def __init__(self, name,cmd,loc):
@@ -27,8 +32,54 @@ class BaseDevice(object):
         self.cmd = cmd
         self.loc = loc
 
-    async def run(self):
+    def __repr__(self):
+        try:
+            return "‹%s:%s›" % (self.__class__.__module__.replace("devrun.",""),self.name)
+        except AttributeError:
+            return "‹%s:?›" % (self.__class__.__module__,)
+
+    async def prepare1(self):
+        """Override me. Call me first!"""
+        self.cfg = self.loc.get('config',{})
+        logger.debug("%s: starting", self.name)
+        self._trigger = asyncio.Event(loop=self.cmd.loop)
+
+    def trigger(self):
+        """Run the next iteration of this device's loop now."""
+        self._trigger.set()
+
+    async def prepare2(self):
+        """Override me. Call me last!"""
+        getattr(self.cmd.reg,self.__module__.rsplit('.',2)[1])[self.name] = self
+        logger.debug("%s: running", self.name)
+
+    async def step1(self):
+        """Override me. Call me first!"""
         pass
+
+    async def step2(self):
+        """Override me. Call me last!"""
+        pass
+
+    @property
+    def interval(self):
+        return self.cfg.get('interval',self.INTERVAL)
+
+    async def run(self):
+
+        await self.prepare1()
+        await self.prepare2()
+
+        while True:
+            await self.step1()
+            await self.step2()
+
+            try:
+                await asyncio.wait_for(self._trigger.wait(), self.interval, loop=self.cmd.loop)
+            except asyncio.TimeoutError:
+                pass
+            else:
+                self._trigger.clear()
 
     @classmethod
     def register(_cls,*path,cls=None,doc=None):
@@ -66,6 +117,7 @@ class BaseDevice(object):
             res['doc'] = doc
         return res
 
+BaseDevice.register("config","interval", cls=float, doc="delay between measurements")
 
 class NotYetError(RuntimeError):
     pass
@@ -79,16 +131,18 @@ class Registry:
         Usage:
             Register:
                 reg.type[name] = dev
+                # BaseDevice.step2() does that for you
 
             Retrieve:
                 dev = await reg.type.get(name)
 
             Trigger timeouts:
                 reg.done()
-        
+
         """
-    def __init__(self):
+    def __init__(self, loop):
         self.reg = {}
+        self.loop = loop
 
     def __getattr__(self,k):
         if k.startswith('_'):
@@ -96,7 +150,7 @@ class Registry:
         try:
             return self.reg[k]
         except KeyError:
-            res = self.reg[k] = _SubReg(k)
+            res = self.reg[k] = _SubReg(k,self.loop)
             return res
 
     def __iter__(self):
@@ -123,10 +177,11 @@ class Registry:
                 f.set_exception(t)
                 n += 1
         return n
-        
+
 class _SubReg:
-    def __init__(self,name):
+    def __init__(self,name,loop):
         self.name = name
+        self.loop = loop
         self.reg = {}
 
     def __getitem__(self,k):
@@ -147,11 +202,13 @@ class _SubReg:
             yield v
 
     def __setitem__(self,k,v):
+        logger.debug("reg %s.%s",self.name,k)
         f = self.reg.get(k,None)
         if f is None:
             pass
         elif isinstance(f,asyncio.Future):
-            f.set_result(v)
+            if not f.done():
+                f.set_result(v)
         else:
             raise RuntimeError('already known',self.name,k,f)
         self.reg[k]=v
@@ -161,10 +218,13 @@ class _SubReg:
         if f is None:
             if not create:
                 raise KeyError(k)
-            f = self.reg[k] = asyncio.Future()
+            logger.debug("wait for %s.%s",self.name,k)
+            f = self.reg[k] = asyncio.Future(loop=self.loop)
         elif isinstance(f,asyncio.Future):
+            logger.debug("also wait for %s.%s",self.name,k)
             pass
         else:
+            logger.debug("found %s.%s",self.name,k)
             return f
         return (await f)
 

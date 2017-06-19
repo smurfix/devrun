@@ -15,8 +15,6 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 from . import BaseCommand
 from devrun.util import objects, import_string
-from devrun.typ import BaseType
-from devrun.etcd.types import EvcDevice
 
 class Command(BaseCommand):
     "Basic command help"
@@ -25,7 +23,7 @@ class Command(BaseCommand):
     help = """\
 help
     -- list of commands
-help ‹command› 
+help ‹command›
     -- help text for that command
 """
 

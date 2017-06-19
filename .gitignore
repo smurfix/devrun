@@ -1,3 +1,4 @@
 .*.sw[op]
 /*.cfg
 __pycache__
+/.cache/

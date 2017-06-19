@@ -24,11 +24,12 @@ class Device(BaseDevice):
 This is the Ping device.
 It prints 'Ping from ‹name›' every second, or however often you set it to.
 """
-    
+
     async def run(self):
+        self.cmd.reg.test[self.name] = self
         while True:
-            await asyncio.sleep(self.loc.get('config',{}).get('interval',1), loop=self.cmd.loop)
+            await asyncio.sleep(self.cfg.get('interval',1), loop=self.cmd.loop)
             print("Ping from "+self.name)
 
-Device.register("config","interval", cls=float, doc="Interval between 'foo' pings")
+Device.register("config","interval", cls=float, doc="Interval between pings")
 

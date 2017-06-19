@@ -19,6 +19,7 @@ import argparse
 import os
 from collections.abc import Mapping
 import qbroker
+import asyncio
 
 from devrun.util import import_string, load_cfg
 from devrun.device import Registry
@@ -29,23 +30,26 @@ def parser(**kw):
     if 'formatter_class' not in kw:
         kw['formatter_class'] = argparse.RawDescriptionHelpFormatter
     res = argparse.ArgumentParser(**kw)
-    res.add_argument('-c', '--config', dest='config', default=os.environ.get('EVC_CONFIG','/etc/devrun.cfg'),
-                        help='configuration file. Default: EVC_CONFIG or /etc/devrun.cfg')
+    res.add_argument('-c', '--config', dest='config', default=os.environ.get('DEVRUN_CONFIG','/etc/devrun.cfg'),
+                        help='configuration file. Default: DEVRUN_CONFIG or /etc/devrun.cfg')
     res.add_argument('-v', '--verbose', dest='verbose', action='count', default=1,
                         help='increase chattiness')
     res.add_argument('-q', '--quiet', dest='verbose', action='store_const', const=0,
                         help='quiet operation')
     return res
-    
+
 class BaseCommand:
     help = None
     cfg = None
     amqp = None
     name = None
+    etcd = None
+    tree = None
 
     def __init__(self, opt):
         self.opt = opt
-        self.reg = Registry()
+        self.loop = opt.loop
+        self.reg = Registry(self.loop)
         if getattr(self,'cfg',None) is None:
             self.cfg = load_cfg(opt.config)
         if isinstance(self.cfg,Mapping):
@@ -54,6 +58,8 @@ class BaseCommand:
             self.name = os.path.splitext(os.path.basename(opt.config))[0]
         self.cmdname = self.__module__.rsplit('.',1)[1]
 
+        self.loop.call_later(10,self.reg.done)
+
     async def start(self):
         if not isinstance(self.cfg,Mapping):
             return
@@ -61,10 +67,20 @@ class BaseCommand:
         if 'amqp' in cfg:
             self.amqp = await qbroker.make_unit(self.name if self.cmdname == 'run' else '%s.%s'%(self.name,self.cmdname), amqp=cfg['amqp'])
     
+        if 'etcd' in cfg:
+            from etcd_tree import client, EtcAwaiter
+            self.etcd = await client(self.cfg, loop=self.loop)
+            self.tree = await self.etcd.tree('/', immediate=True)
+            for k,v in self.cfg.items():
+                await self.tree.set(k,v)
+            self.cfg = self.tree
+
     async def run(self):
         raise NotImplementedError("You need to override .run()")
 
     async def stop(self):
+        if self.etcd is not None:
+            await self.etcd.stop()
         if self.amqp is not None:
             await self.amqp.stop()
 

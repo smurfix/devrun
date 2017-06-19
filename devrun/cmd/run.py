@@ -21,9 +21,7 @@ from collections.abc import Mapping
 from qbroker.unit import CC_DICT
 
 from . import BaseCommand, CMD_TYPES
-from devrun.util import objects, import_string
-from devrun.typ import BaseType
-from devrun.etcd.types import EvcDevice
+from devrun.util import import_string
 
 class Command(BaseCommand):
     "Run the whole system"
@@ -37,17 +35,16 @@ run
             print("Usage: run", file=sys.stderr)
             return 1
         self.cls = {}
-        self.loop = asyncio.get_event_loop()
-        self.endit = asyncio.Event()
+        self.endit = asyncio.Event(loop=self.loop)
         def ended(f):
             try:
-                exc = f.result()
+                f.result()
             except asyncio.CancelledError:
-                exc = None
-            except Exception:
-                print_exc()
-            finally:
+                pass
+            except KeyboardInterrupt:
                 self.endit.set()
+            except BaseException:
+                print_exc()
 
         for cls,devs in self.cfg['devices'].items():
             if not isinstance(devs,Mapping):

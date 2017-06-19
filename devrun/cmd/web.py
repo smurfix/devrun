@@ -16,7 +16,6 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 import sys
 import asyncio
 import inspect
-from traceback import print_exc
 from collections.abc import Mapping
 
 from . import BaseCommand
