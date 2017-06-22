@@ -38,8 +38,8 @@ or to a remote modbus gateway.
 
     proto = None
 
-    async def run(self):
-        await self.prepare1()
+    async def prepare1(self):
+        await super().prepare1()
         self.end = asyncio.Event(loop=self.cmd.loop)
         self.stats = Stats()
         logger.debug("Start: %s",self.name)
@@ -67,6 +67,8 @@ or to a remote modbus gateway.
             #self.proto = ReconnectingAsyncioModbusTcpClient()
             #await self.proto.start(host,port)
 
+    async def run(self):
+        await self.prepare1()
         await self.prepare2()
 
         await self.end.wait()
