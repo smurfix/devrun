@@ -16,7 +16,8 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 import asyncio
 import sys
 from devrun.support.modbus import ModbusException
-from pymodbus.client.async_asyncio import ReconnectingAsyncioModbusTcpClient
+#from pymodbus.client.async_asyncio import ReconnectingAsyncioModbusTcpClient
+from pymodbus.client.async import ModbusClientProtocol
 from pymodbus.client.common import ModbusClientMixin
 from pymodbus.pdu import ExceptionResponse
 
@@ -54,13 +55,17 @@ or to a remote modbus gateway.
             raise NotImplementedError("local modbus")
 
         else:
+            from twisted.internet import reactor,protocol
             if ':' in host:
                 host,port=host.split(':')
             else:
                 port = 502
 
-            self.proto = ReconnectingAsyncioModbusTcpClient()
-            await self.proto.start(host,port)
+            client = protocol.ClientCreator(reactor, ModbusClientProtocol).connectTCP(host,port)
+            self.proto = await client.asFuture(reactor._asyncioEventloop)
+
+            #self.proto = ReconnectingAsyncioModbusTcpClient()
+            #await self.proto.start(host,port)
 
         await self.prepare2()
 
@@ -74,8 +79,10 @@ or to a remote modbus gateway.
         self.end.set()
 
     async def execute(self,request):
+        from twisted.internet import reactor
         async with self.stats:
-            res = await self.proto.protocol.execute(request)
+            res = self.proto.execute(request)
+            res = await res.asFuture(reactor._asyncioEventloop)
         if isinstance(res, ExceptionResponse):
             raise ModbusException(res)
         return res
