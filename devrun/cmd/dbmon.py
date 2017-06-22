@@ -43,6 +43,10 @@ dbmon
     -- collect data updates and store to mongodb
 """
 
+    def __init__(self,*a,**k):
+        super().__init__(*a,**k)
+        self.dbs = {}
+
     async def run(self, *args):
         self.loop = self.opt.loop
         if args:
@@ -52,10 +56,8 @@ dbmon
         cfg = self.cfg['config']['mongo']['data_logger']
         self.mongo = AsyncIOMotorClient(cfg['host'])
         self.coll = self.mongo[cfg['database']]
-        self.db = self.coll[cfg['prefix']+'raw']
-        await self.db.ensure_index((('type',ASCENDING),('name',ASCENDING),('timestamp',ASCENDING)),unique=True,name='primary')
 
-        await self.amqp.register_alert_async('update.charger', self.callback, durable='log_mongodb', call_conv=CC_MSG)
+        await self.amqp.register_alert_async('update.#', self.callback, durable='log_mongodb', call_conv=CC_MSG)
 
         while True:
             await asyncio.sleep(9999,loop=self.loop)
@@ -64,9 +66,17 @@ dbmon
         try:
             body = msg.data
             body['timestamp'] = msg.timestamp
+            db_name = msg.routing_key.rsplit('.',1)[1]
 
             try:
-                curs = self.db.find({'name': body['name'], 'type':body['type']}).sort('timestamp',DESCENDING)
+                db = self.dbs[db_name]
+            except KeyError:
+                cfg = self.cfg['config']['mongo']['data_logger']
+                db = self.coll[cfg.get('prefix','')+'raw_'+db_name]
+                await db.ensure_index((('type',ASCENDING),('name',ASCENDING),('timestamp',ASCENDING)),unique=True,name='primary')
+                self.dbs[db_name] = db
+            try:
+                curs = db.find({'name': body['name'], 'type':body['type']}).sort('timestamp',DESCENDING)
             except KeyError:
                 pprint(body)
                 return
@@ -83,7 +93,7 @@ dbmon
                 _id = doc['_id']
                 print("*",body['name'], doc['state'], doc['timestamp'], body['timestamp'])
                 if doc['state'] != body['state']:
-                    await self.db.update({'_id': _id},{"$set":{"change_b":1}})
+                    await db.update({'_id': _id},{"$set":{"change_b":1}})
                     dr = "state %s %s" % (doc['state'], body['state'])
                     doc = False
                 elif doc.get('change_a',True) or (body['state'] == 'charging' and ts < body['timestamp']-5*60):
@@ -104,9 +114,9 @@ dbmon
 
             if doc:
                 _id = doc['_id']
-                res = await self.db.update({'_id': _id}, body)
+                res = await db.update({'_id': _id}, body)
             else:
-                res = await self.db.insert_one(body)
+                res = await db.insert_one(body)
             print(body['type'],body['name'],body['state'],body['change_a'],body['timestamp'],dr,res)
 
             #if properties.content_type == 'application/json' or properties.content_type.startswith('application/json+'):
