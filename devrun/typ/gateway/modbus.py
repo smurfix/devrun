@@ -47,9 +47,14 @@ class AsyncModbusTcpProtocol(ModbusTcpProtocol):
         message.registers = reg
         super()._send(message)
         
+    def _err(self,*a,**k):
+        import pdb; pdb.set_trace()
+        pass
+
     def _send(self,message):
         if isinstance(message.registers,Deferred):
             message.registers.addCallback(partial(self._send_later,message))
+            message.registers.addErrback(self._err)
         else:
             super()._send(message)
 
