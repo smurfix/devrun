@@ -99,9 +99,28 @@ class RemoteSlaveContext(RSC):
         :returns: A Deferred with the requested values from a:a+c
         '''
         logger.debug("get values[%d] %d:%d" % (fx, address, count))
-        result = self.__get_callbacks[self.decode(fx)](address, count)
+        result = self.__get_callbacks[self.decode(fx)](address, count, unit=self.unit)
         result.addCallback(lambda r: self.__extract_result(self.decode(fx), r))
         return result
+
+    def __build_mapping(self):
+        '''
+        A quick helper method to build the function
+        code mapper.
+        '''
+        self.__get_callbacks = {
+            'd': self._client.read_discrete_inputs,
+            'c': self._client.read_coils,
+            'h': self._client.read_holding_registers,
+            'i': self._client.read_input_registers,
+        }
+        self.__set_callbacks = {
+            'd': self._client.write_coils,
+            'c': self._client.write_coils,
+            'h': self._client.write_registers,
+            'i': self._client.write_registers,
+        }
+
 
 class TcpClient(ModbusClientProtocol):
     pass
@@ -122,6 +141,7 @@ It translates incoming requests to device N to go out to device X.
         await super().prepare1()
         self.nr = self.cfg['devices']
         self.devices = {}
+        clients = {}
         for i in range(1,self.nr+1):
 
             cfg = self.loc['dev_%d' % i]
@@ -137,6 +157,7 @@ It translates incoming requests to device N to go out to device X.
             client = await client.asFuture(reactor._asyncioEventloop)
 
             ctx = RemoteSlaveContext(client)
+            ctx.unit = cfg.get('unit',1)
             self.devices[i] = ctx
 
         self.server = ModbusServerContext(slaves=self.devices, single=False)
