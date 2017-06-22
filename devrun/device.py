@@ -63,7 +63,7 @@ class BaseDevice(object):
 
     async def step2(self):
         """Override me. Call me last!"""
-        pass
+        await self.cmd.amqp.alert("update."+self.__module__.rsplit('.',2)[1], _data=self.get_state())
 
     @property
     def interval(self):
