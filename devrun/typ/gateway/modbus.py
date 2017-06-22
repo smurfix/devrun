@@ -160,8 +160,12 @@ It translates incoming requests to device N to go out to device X.
                     host,port=host.split(':')
                 else:
                     port = 502
-            client = protocol.ClientCreator(reactor, TcpClient).connectTCP(host,port)
-            client = await client.asFuture(reactor._asyncioEventloop)
+            try:
+                client = clients[(host,port)]
+            except KeyError:
+                client = protocol.ClientCreator(reactor, TcpClient).connectTCP(host,port)
+                client = await client.asFuture(reactor._asyncioEventloop)
+                clients[(host,port)] = client
 
             ctx = RemoteSlaveContext(client)
             ctx.unit = cfg.get('unit',1)
