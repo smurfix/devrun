@@ -86,6 +86,10 @@ class RemoteSlaveContext(RSC):
     A forwarding modbus slave
     '''
 
+    def _err(self,*a,**k):
+        import pdb;pdb.set_trace()
+        pass
+
     def validate(self, fx, address, count=1):
         ''' Validation is disabled here '''
         return True
@@ -101,6 +105,7 @@ class RemoteSlaveContext(RSC):
         logger.debug("get values[%d] %d:%d" % (fx, address, count))
         result = self.__get_callbacks[self.decode(fx)](address, count, unit=self.unit)
         result.addCallback(lambda r: self.__extract_result(self.decode(fx), r))
+        result.addErrback(self._err)
         return result
 
     def __build_mapping(self):
