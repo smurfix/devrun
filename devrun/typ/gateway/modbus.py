@@ -84,6 +84,8 @@ _logger = logging.getLogger(__name__)
 class RemoteSlaveContext(RSC):
     '''
     A forwarding modbus slave
+
+    This has the same name as the superclass so that overriding __foo works
     '''
 
     def _err(self,*a,**k):
