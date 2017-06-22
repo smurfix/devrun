@@ -1,4 +1,8 @@
 attr
+yaml
+uvloop
+twisted
+aioamqp
 qbroker
 asyncio_dispatch
 blinker
