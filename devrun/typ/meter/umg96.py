@@ -57,6 +57,8 @@ This module interfaces to an SDM630 power meter via Modbus.
         res['watt'] = self.watts
         res['VAs'] = self.VA
         res['VA'] = self.VAs
+        res['Whs'] = self.Whs
+        res['Wh'] = self.Wh
         res['power_factors'] = self.factor
         res['power_factor'] = self.factor_avg
         res['energy_total'] = self.cur_total
@@ -112,8 +114,12 @@ This module interfaces to an SDM630 power meter via Modbus.
                 else:
                     self.factor_avg = sum(self.amp[n]*self.factor[n] for n in (0,1,2))/asum
 
-                val = await self.floats(19060,1) # total
-                self.cur_total = abs(val[0]) - self.last_total
+                val = await self.floats(19054,4) # total
+                self.Wh[0] = abs(val[0+self.phase1])
+                self.Wh[1] = abs(val[0+self.phase2])
+                self.Wh[2] = abs(val[0+self.phase3])
+                self.Whs = abs(val[3])
+                self.cur_total = self.Whs - self.last_total
             except ModbusException as exc:
                 logger.warning("%s: %s from %s:%s",self.name,exc, self.bus.name,self.unit)
             else:

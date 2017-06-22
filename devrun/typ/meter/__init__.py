@@ -38,12 +38,14 @@ class BaseDevice(_BaseDevice):
         self.watt = [0]*3
         self.VA = [0]*3
         self.factor = [0]*3
+        self.Wh = [0]*3
 
         self.volts = 0
         self.amps = 0
         self.amp_max = 0
         self.watts = 0
         self.VAs = 0
+        self.Whs = 0
         self.factor_avg = 0
 
         self.cur_total = 0
