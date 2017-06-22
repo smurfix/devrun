@@ -43,6 +43,10 @@ class BaseDevice(object):
         self.cfg = self.loc.get('config',{})
         logger.debug("%s: starting", self.name)
         self._trigger = asyncio.Event(loop=self.cmd.loop)
+        wait = self.cfg.get('wait-for',None)
+        if wait is not None:
+            a,b = wait.split('/')
+            await getattr(self.cmd.reg,a).get(b)
 
     def trigger(self):
         """Run the next iteration of this device's loop now."""
