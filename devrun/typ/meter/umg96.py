@@ -30,10 +30,10 @@ This module interfaces to an SDM630 power meter via Modbus.
 """
 
     async def query(self,func,b=None):
-        return (await self.bus.query(self.adr,func,b))
+        return (await self.bus.query(self.unit,func,b))
 
     async def floats(self, start,count):
-        rr = await self.bus.read_input_registers(start,count*2, unit=self.adr)
+        rr = await self.bus.read_input_registers(start,count*2, unit=self.unit)
         n = len(rr.registers)
         return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
 
@@ -66,7 +66,7 @@ This module interfaces to an SDM630 power meter via Modbus.
         await super().prepare1()
         ### auto mode
         self.bus = await self.cmd.reg.bus.get(self.cfg['bus'])
-        self.adr = self.cfg['address']
+        self.unit = self.cfg.get('unit',1)
         self.phase1 = int(self.cfg.get('phase_offset',0))
         assert 0 <= self.phase1 <= 2
         self.phase2 = (self.phase1+1)%3
@@ -115,7 +115,7 @@ This module interfaces to an SDM630 power meter via Modbus.
                 val = await self.floats(19060,1) # total
                 self.cur_total = abs(val[0]) - self.last_total
             except ModbusException as exc:
-                logger.warning("%s: %s from %s:%s",self.name,exc, self.bus.name,self.adr)
+                logger.warning("%s: %s from %s:%s",self.name,exc, self.bus.name,self.unit)
             else:
                 return
 
