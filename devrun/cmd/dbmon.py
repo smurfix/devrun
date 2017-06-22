@@ -39,8 +39,11 @@ from devrun.web import App
 class Command(BaseCommand):
     "Collect data and park in mongodb"
     help = """\
-dbmon
+dbmon [type]…
     -- collect data updates and store to mongodb
+
+WARNING: This will create a persistent AMQP queue.
+That queue will overflow unless "dbmon" continues to run!
 """
 
     def __init__(self,*a,**k):
@@ -49,15 +52,19 @@ dbmon
 
     async def run(self, *args):
         self.loop = self.opt.loop
-        if args:
-            print("Usage: dbmon", file=sys.stderr)
+        if len(args) > 1:
+            print("Usage: dbmon [type]", file=sys.stderr)
             return 1
 
         cfg = self.cfg['config']['mongo']['data_logger']
         self.mongo = AsyncIOMotorClient(cfg['host'])
         self.coll = self.mongo[cfg['database']]
 
-        await self.amqp.register_alert_async('update.#', self.callback, durable='log_mongodb', call_conv=CC_MSG)
+        if args:
+            for t in args:
+                await self.amqp.register_alert_async('update.'+t, self.callback, durable='log_mongodb_'+t, call_conv=CC_MSG)
+        else:
+            await self.amqp.register_alert_async('update.#', self.callback, durable='log_mongodb', call_conv=CC_MSG)
 
         while True:
             await asyncio.sleep(9999,loop=self.loop)
