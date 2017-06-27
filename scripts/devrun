@@ -5,14 +5,13 @@
 import qbroker; qbroker.setup()
 import asyncio
 import argparse
-import uvloop
-from twisted.internet import asyncioreactor
+#import uvloop
 
-loop = uvloop.new_event_loop()
+#loop = uvloop.new_event_loop()
+from asyncio.unix_events import SelectorEventLoop
+from selectors import SelectSelector
+loop = SelectorEventLoop(selector=SelectSelector())
 asyncio.set_event_loop(loop)
-asyncioreactor.install(eventloop=loop)
-
-from twisted.internet import reactor
 
 import sys
 from traceback import print_exc
@@ -45,10 +44,7 @@ class Run(Main):
         self.add_cleanup(self.cmd.stop)
 
     def run(self):
-        reactor.startRunning(installSignalHandlers=False)
         loop.run_until_complete(self._run())
-        if reactor._justStopped:
-            reactor._justStopped = False
 
 LOG=[logging.ERROR,logging.WARNING,logging.INFO,logging.DEBUG]
 

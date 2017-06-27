@@ -21,62 +21,124 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 import asyncio
 import sys
 from devrun.support.modbus import ModbusException
-from pymodbus.client.async import ModbusClientProtocol
-from pymodbus.pdu import ExceptionResponse
+from devrun.support.modbus import AioModbusClientProtocol
+from pymodbus.pdu import ExceptionResponse, ModbusExceptions
 from pymodbus.datastore import ModbusServerContext
+from pymodbus.factory import ServerDecoder
+from pymodbus.compat import byte2int, int2byte
+from pymodbus.exceptions import NoSuchSlaveException
 
 from devrun.device import BaseDevice
 from devrun.support.timing import Stats
 from functools import partial
-from twisted.internet.defer import Deferred
+from inspect import isawaitable
+from binascii import b2a_hex
 
 import logging
 logger = logging.getLogger(__name__)
-
-import devrun.util.twist # for monkeypatching Deferred
 
 from pymodbus.exceptions import NotImplementedException
 from pymodbus.interfaces import IModbusSlaveContext
 from pymodbus.datastore.remote import RemoteSlaveContext as RSC
 from pymodbus.transaction import ModbusSocketFramer
 from pymodbus.server.async import ModbusServerFactory as MSF, ModbusTcpProtocol
-from pymodbus.internal.ptwisted import InstallManagementConsole
+from pymodbus.constants import Defaults
+from pymodbus.device import ModbusControlBlock
+from pymodbus.device import ModbusAccessControl
 
-class AsyncModbusTcpProtocol(ModbusTcpProtocol):
-    def _send_later(self,message,reg):
-        message.registers = reg
-        super()._send(message)
-        
-    def _send(self,message):
-        if isinstance(message.registers,Deferred):
-            message.registers.addCallback(partial(self._send_later,message))
-        else:
-            super()._send(message)
+class AioModbusServerProtocol:
+    ''' Implements a modbus server in twisted '''
 
-class ModbusServerFactory(MSF):
-    protocol = AsyncModbusTcpProtocol
+    task = None
+    def __init__(self, framer=ModbusSocketFramer, decoder=ServerDecoder,
+            store=None, control=None,access=None, ignore_missing_slaves=None, loop=None):
+        self.decoder = decoder()
+        self.framer = framer(self.decoder)
+        self.store = store or ModbusServerContext()
+        self.control = control or ModbusControlBlock()
+        self.access = access or ModbusAccessControl()
+        self.ignore_missing_slaves = ignore_missing_slaves if ignore_missing_slaves is not None \
+            else Defaults.IgnoreMissingSlaves
+        self.loop = loop
+        self.q = asyncio.Queue(loop=loop)
 
-def StartTcpServer(context, identity=None, address=None, console=False):
-    ''' Helper method to start the Modbus Async TCP server
-    This is a copy of pymodbus.server.async.StartTcpServer, without the
-    brain-dead "reactor.run()" call at the end
-    '''
-    from twisted.internet import reactor
+    def connection_made(self, transport):
+        ''' Callback for when a client connects
+        '''
+        logger.debug("Client Connected")
+        self.transport = transport
+        if self.task is None:
+            self.task = asyncio.ensure_future(self.exec_task(), loop=self.loop)
 
-    address = address or ("", Defaults.Port)
-    framer  = ModbusSocketFramer
-    factory = ModbusServerFactory(context, framer, identity)
-    if console: InstallManagementConsole({'factory': factory})
+    def connection_lost(self, exc):
+        ''' Callback for when a client disconnects
 
-    _logger.info("Starting Modbus TCP Server on %s:%s" % address)
-    reactor.listenTCP(address[1], factory, interface=address[0])
+        :param exc: The client's reason for disconnecting
+        '''
+        logger.debug("Client Disconnected: %s", exc)
+        self.transport = None
+        if self.task is not None:
+            self.task.cancel()
+            self.task = None
 
-#---------------------------------------------------------------------------#
-# Logging
-#---------------------------------------------------------------------------#
-import logging
-_logger = logging.getLogger(__name__)
+    def data_received(self, data):
+        ''' Callback when we receive any data
 
+        :param data: The data sent by the client
+        '''
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(' '.join([hex(byte2int(x)) for x in data]))
+        if not self.control.ListenOnly:
+            self.framer.processIncomingPacket(data, self._execute)
+
+    def _execute(self, request):
+        ''' Executes the request and returns the result
+
+        :param request: The decoded request message
+        '''
+        self.q.put_nowait(request)
+
+    async def exec_task(self):
+        while True:
+            request = await self.q.get()
+            try:
+                await self._execute2(request)
+            except Exception as ex:
+                logger.exception("GW")
+                raise
+
+    async def _execute2(self, request):
+        try:
+            context = self.store[request.unit_id]
+            response = request.execute(context)
+            if isawaitable(response.registers):
+                response.registers = await asyncio.wait_for(response.registers, 30)
+        except NoSuchSlaveException as ex:
+            logger.debug("requested slave does not exist: %s", request.unit_id)
+            if self.ignore_missing_slaves:
+                return # the client will simply timeout waiting for a response
+            response = request.doException(ModbusExceptions.GatewayNoResponse)
+        except asyncio.TimeoutError:
+            response = request.doException(ModbusExceptions.GatewayNoResponse)
+        except Exception as ex:
+            logger.debug("Datastore unable to fulfill request: %s", ex)
+            response = request.doException(ModbusExceptions.SlaveFailure)
+        #self.framer.populateResult(response)
+        response.transaction_id = request.transaction_id
+        response.unit_id = request.unit_id
+        self._send(response)
+
+    def _send(self, message):
+        ''' Send a request (string) to the network
+
+        :param message: The unencoded modbus response
+        '''
+        if message.should_respond:
+            self.control.Counter.BusMessage += 1
+            pdu = self.framer.buildPacket(message)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug('send: %s', b2a_hex(pdu))
+            return self.transport.write(pdu)
 
 #---------------------------------------------------------------------------#
 # Context
@@ -96,19 +158,20 @@ class RemoteSlaveContext(RSC):
         ''' Validation is disabled here '''
         return True
 
-    def getValues(self, fx, address, count=1):
-        ''' Get values from the remote server
+    async def getValues(self, fx, address, count=1):
+        ''' Validates the request to make sure it is in range
 
         :param fx: The function we are working with
         :param address: The starting address
         :param count: The number of values to retrieve
-        :returns: A Deferred with the requested values from a:a+c
+        :returns: The requested values from a:a+c
         '''
-        logger.debug("get values[%d] %d:%d" % (fx, address, count))
-        result = self.__get_callbacks[self.decode(fx)](address, count, unit=self.unit)
-        result.addCallback(lambda r: self.__extract_result(self.decode(fx), r))
-        result.addErrback(self._err)
-        return result
+        # TODO deal with deferreds
+        logger.debug("get values[%d:%d] %d:%d", fx, self.unit, address, count)
+        result = await self.__get_callbacks[self.decode(fx)](address, count, unit=self.unit)
+        if isawaitable(result):
+            result = await result
+        return self.__extract_result(self.decode(fx), result)
 
     def __build_mapping(self):
         '''
@@ -128,10 +191,6 @@ class RemoteSlaveContext(RSC):
             'i': self._client.write_registers,
         }
 
-
-class TcpClient(ModbusClientProtocol):
-    pass
-
 class Device(BaseDevice):
     """ModBus gateway"""
     help = """\
@@ -143,8 +202,6 @@ It translates incoming requests to device N to go out to device X.
     proto = None
 
     async def prepare1(self):
-        from twisted.internet import reactor,protocol
-
         await super().prepare1()
         self.nr = self.cfg['devices']
         self.devices = {}
@@ -163,16 +220,15 @@ It translates incoming requests to device N to go out to device X.
             try:
                 client = clients[(host,port)]
             except KeyError:
-                client = protocol.ClientCreator(reactor, TcpClient).connectTCP(host,port)
-                client = await client.asFuture(reactor._asyncioEventloop)
-                clients[(host,port)] = client
+                (t,p) = await self.loop.create_connection(AioModbusClientProtocol, host=host, port=port)
+                client = clients[(host,port)] = p
 
             ctx = RemoteSlaveContext(client)
             ctx.unit = cfg.get('unit',1)
             self.devices[i] = ctx
 
-        self.server = ModbusServerContext(slaves=self.devices, single=False)
-        StartTcpServer(self.server, address=("",self.cfg.get('port',502)))
+        self.ctx = ModbusServerContext(slaves=self.devices, single=False)
+        self.server = await self.loop.create_server(lambda: AioModbusServerProtocol(store=self.ctx, loop=self.loop), host=None, port=self.cfg.get('port',502))
 
     async def run(self):
         await self.prepare1()

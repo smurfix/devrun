@@ -31,6 +31,7 @@ class BaseDevice(object):
         self.name = name
         self.cmd = cmd
         self.loc = loc
+        self.loop = cmd.loop
 
     def __repr__(self):
         try:
@@ -226,9 +227,9 @@ class _SubReg:
             f = self.reg[k] = asyncio.Future(loop=self.loop)
         elif isinstance(f,asyncio.Future):
             logger.debug("also wait for %s.%s",self.name,k)
-            pass
         else:
             logger.debug("found %s.%s",self.name,k)
             return f
-        return (await f)
+        f = await f
+        return f
 
