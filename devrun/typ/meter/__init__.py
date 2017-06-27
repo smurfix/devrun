@@ -18,11 +18,18 @@ This module implements talking to a power meter.
 
 """
 
+import asyncio
 import blinker
+import struct
 from time import time
 
 from devrun.typ import BaseType
 from devrun.device import BaseDevice as _BaseDevice
+
+import logging
+logger = logging.getLogger(__name__)
+
+from devrun.support.modbus import ModbusException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -54,6 +61,29 @@ class BaseDevice(_BaseDevice):
         self.signal = blinker.Signal()
 
         super().__init__(*a,**k)
+
+    async def query(self,func,b=None):
+        return (await self.bus.query(self.unit,func,b))
+
+    async def floats(self, start,count):
+        rr = await self.bus.read_input_registers(start,count*2, unit=self.unit)
+        n = len(rr.registers)
+        return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
+
+    def get_state(self):
+        res = super().get_state()
+        res['amps'] = self.amp
+        res['amp'] = self.amp_max
+        res['watts'] = self.watt
+        res['watt'] = self.watts
+        res['VAs'] = self.VA
+        res['VA'] = self.VAs
+        res['Whs'] = self.Whs
+        res['Wh'] = self.Wh
+        res['power_factors'] = self.factor
+        res['power_factor'] = self.factor_avg
+        res['energy_total'] = self.cur_total
+        return res
 
     def register_charger(self,obj):
         assert self.charger is None
@@ -91,6 +121,23 @@ class BaseDevice(_BaseDevice):
         await super().step2()
         self.signal.send(self)
 
+    async def prepare1(self):
+        await super().prepare1()
+        ### auto mode
+        self.bus = await self.cmd.reg.bus.get(self.cfg['bus'])
+        self.unit = self.cfg.get('unit',1)
+        self.phase1 = int(self.cfg.get('offset',0))
+        assert 0 <= self.phase1 <= 2
+        self.phase2 = (self.phase1+1)%3
+        self.phase3 = (self.phase2+1)%3
+
+class BusDevice(BaseDevice):
+    pass
+
+BusDevice.register("config","bus", cls=str, doc="Bus to connect to")
+BusDevice.register("config","address", cls=int, doc="This charger's address on the bus")
+BusDevice.register("config","power", cls=str, doc="Power supply to use")
+BusDevice.register("config","offset", cls=int, doc="phase offset (0,1,2)")
+
 BaseDevice.register("config","idle", cls=float, doc="delay between measurements when not in use")
-BaseDevice.register("config","power", cls=str, doc="Power supply to use")
 

@@ -34,32 +34,6 @@ This module implements a virtual meter that reports semi-random values.
 The typical current level is 90% of the allowed range.
 """
 
-    async def query(self,func,b=None):
-        return (await self.bus.query(self.adr,func,b))
-
-    async def floats(self, start,count):
-        rr = await self.bus.read_input_registers(start*2-2,count*2, unit=self.adr)
-        n = len(rr.registers)
-        return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
-
-    def register_charger(self,obj):
-        assert self.charger is None
-        self.charger = obj
-        self.trigger()
-
-    def get_state(self):
-        res = super().get_state()
-        res['amps'] = self.amp
-        res['amp'] = self.amp_max
-        res['watts'] = self.watt
-        res['watt'] = self.watts
-        res['VAs'] = self.VA
-        res['VA'] = self.VAs
-        res['power_factors'] = self.factor
-        res['power_factor'] = self.factor_avg
-        res['energy_total'] = self.cur_total
-        return res
-
     @property
     def rnd(self):
         if self.charger is None or not self.charger.charging:
@@ -104,7 +78,9 @@ The typical current level is 90% of the allowed range.
         self.watts = sum(self.watt)
         self.VAs = sum(self.VA)
 
-        self.cur_total += sum(self.watt[i]*self.loop_time/3600 for i in (0,1,2))
+        for i in (0,1,2):
+            self.Wh[i] += self.watt[i]*self.loop_time/3600
+        self.Whs += sum(self.watt[i] for i in (0,1,2)) * self.loop_time/3600
 
 Device.register("config","min", cls=float, doc="minimum power usage")
 Device.register("config","max", cls=float, doc="maximum power usage")
