@@ -51,7 +51,7 @@ class AioModbusServerProtocol:
 
     task = None
     def __init__(self, framer=ModbusSocketFramer, decoder=ServerDecoder,
-            store=None, control=None,access=None, ignore_missing_slaves=None, loop=None):
+            store=None, control=None,access=None, ignore_missing_slaves=None, loop=None, timeout=1):
         self.decoder = decoder()
         self.framer = framer(self.decoder)
         self.store = store or ModbusServerContext()
@@ -61,6 +61,7 @@ class AioModbusServerProtocol:
             else Defaults.IgnoreMissingSlaves
         self.loop = loop
         self.q = asyncio.Queue(loop=loop)
+        self.timeout = timeout
 
     def connection_made(self, transport):
         ''' Callback for when a client connects
@@ -112,7 +113,7 @@ class AioModbusServerProtocol:
             context = self.store[request.unit_id]
             response = request.execute(context)
             if isawaitable(response.registers):
-                response.registers = await asyncio.wait_for(response.registers, 30)
+                response.registers = await asyncio.wait_for(response.registers, self.timeout)
         except NoSuchSlaveException as ex:
             logger.debug("requested slave does not exist: %s", request.unit_id)
             if self.ignore_missing_slaves:
@@ -228,7 +229,7 @@ It translates incoming requests to device N to go out to device X.
             self.devices[i] = ctx
 
         self.ctx = ModbusServerContext(slaves=self.devices, single=False)
-        self.server = await self.loop.create_server(lambda: AioModbusServerProtocol(store=self.ctx, loop=self.loop), host=None, port=self.cfg.get('port',502))
+        self.server = await self.loop.create_server(lambda: AioModbusServerProtocol(store=self.ctx, loop=self.loop, timeout=self.cfg.get('timeout',3)), host=None, port=self.cfg.get('port',502))
 
     async def run(self):
         await self.prepare1()
