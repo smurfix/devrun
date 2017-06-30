@@ -71,6 +71,10 @@ class AioModbusServerProtocol:
         if self.task is None:
             self.task = asyncio.ensure_future(self.exec_task(), loop=self.loop)
 
+    def eof_received(self, *foo):
+        logger.debug("Client EOF: %s", foo)
+        self.connection_lost(None)
+
     def connection_lost(self, exc):
         ''' Callback for when a client disconnects
 
