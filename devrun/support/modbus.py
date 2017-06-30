@@ -80,10 +80,13 @@ class AioModbusClientProtocol(ModbusClientMixin):
             tid = reply.transaction_id
             handler = self.transaction.getTransaction(tid)
             if handler:
-                if isinstance(reply, ExceptionResponse):
-                    handler.set_exception(ModbusException(reply))
-                else:
-                    handler.set_result(reply)
+                try:
+                    if isinstance(reply, ExceptionResponse):
+                        handler.set_exception(ModbusException(reply))
+                    else:
+                        handler.set_result(reply)
+                except asyncio.CancelledError:
+                    pass
             else:
                 logger.debug("Unrequested message: %s", reply)
 
