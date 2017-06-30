@@ -70,6 +70,11 @@ class BaseDevice(_BaseDevice):
         n = len(rr.registers)
         return struct.unpack('>%df'%(n//2),struct.pack('>%dH'%n,*rr.registers))
 
+    async def doubles(self, start,count):
+        rr = await self.bus.read_input_registers(start,count*4, unit=self.unit)
+        n = len(rr.registers)
+        return struct.unpack('>%dd'%(n//4),struct.pack('>%dH'%n,*rr.registers))
+
     def get_state(self):
         res = super().get_state()
         res['amps'] = self.amp
