@@ -61,6 +61,9 @@ class AioModbusClientProtocol(ModbusClientMixin):
     def data_received(self, data):
         self.framer.processIncomingPacket(data, self._handleResponse)
 
+    def eof_received(self):
+        logger.info("Lost connection: %s",self)
+
     def _buildResponse(self, tid):
         ''' Helper method to return a deferred response
         for the current request.
