@@ -38,6 +38,38 @@ or to a remote modbus gateway.
 
     proto = None
 
+    def _restart_done(self,t):
+        try:
+            r = t.result()
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:
+            logger.exception("%s: Failed to reconnect", self.name)
+
+    async def _restart(self):
+        dly = 1
+        logger.info("%s: Restarting", self.name)
+        while True:
+		await self.start_client()
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                logger.exception("%s: Trying to reconnect", self.name)
+                await asyncio.sleep(dly)
+                dly = min(5*60, dly*1.5)
+            else:
+                logger.info("%s: Restarting done", self.name)
+                return
+
+    def restart(self, exc=None):
+        logger.warn("%s: Restarting due to %s", self.name, exc)
+        t = asyncio.ensure_future(self._restart())
+        t.add_done_callback(self._restart_done)
+
+    async def start_client(self)
+	t,p = await self.loop.create_connection(partial(AioModbusClientProtocol, reconnect=self.restart), host=self.host, port=self.port)
+	self.proto = p
+
     async def prepare1(self):
         await super().prepare1()
         self.end = asyncio.Event(loop=self.cmd.loop)
@@ -46,26 +78,21 @@ or to a remote modbus gateway.
 
         try:
             cfg = self.cfg
-            host = cfg['host']
-            if not host:
-                raise KeyError(host)
+            self.host = cfg['host']
+            if not self.host:
+                raise KeyError(self.host)
         except KeyError:
             raise ConfigError("You need to specify a host")
-        if host[0] == '/': # local device
+        if self.host[0] == '/': # local device
             raise NotImplementedError("local modbus")
 
         else:
-            if ':' in host:
-                host,port=host.split(':')
+            if ':' in self.host:
+                self.host,self.port=self.host.split(':')
             else:
-                port = 502
+                self.port = 502
 
-            t,p = await self.loop.create_connection(AioModbusClientProtocol, host=host, port=port)
-            p.__transport = t
-            self.proto = p
-
-            #self.proto = ReconnectingAsyncioModbusTcpClient()
-            #await self.proto.start(host,port)
+            await self.start_client()
 
     async def run(self):
         await self.prepare1()
