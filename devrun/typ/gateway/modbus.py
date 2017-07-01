@@ -202,31 +202,69 @@ It translates incoming requests to device N to go out to device X.
 
     proto = None
 
+    def _restart_done(self,i,t):
+        try:
+            r = t.result()
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:
+            logger.exception("Failed to reconnect %d",i)
+
+    async def _restart(self,i):
+        dly = 1
+        units = self.devices[i]._client.units
+        logger.info("Restarting %s",units)
+        while True:
+            clients = {}
+            try:
+                for i in units:
+                    self.devices[i] = None
+                for i in units:
+                    await self.start_client(i, clients)
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                logger.exception("Trying to reconnect")
+                await asyncio.sleep(dly)
+                dly = min(5*60, dly*1.5)
+            else:
+                logger.info("Restarting %s: done",units)
+                return
+
+    def restart(self, i, exc=None):
+        logger.warn("Restarting %d due to %s",i,exc)
+        t = asyncio.ensure_future(self._restart(i))
+        t.add_done_callback(partial(self._restart_done,i))
+
+    async def start_client(self, i, clients):
+        cfg = self.loc['dev_%d' % i]
+        host = cfg['host']
+        if host[0] == '/': # local device
+            raise NotImplementedError("local modbus")
+        else:
+            if ':' in host:
+                host,port=host.split(':')
+            else:
+                port = 502
+        try:
+            client = clients[(host,port)]
+        except KeyError:
+            (t,p) = await self.loop.create_connection(partial(AioModbusClientProtocol, reconnect=partial(self.restart,i)), host=host, port=port)
+            client = clients[(host,port)] = p
+            client.units = set()
+        client.units.add(i)
+
+        ctx = RemoteSlaveContext(client)
+        ctx.unit = cfg.get('unit',1)
+        self.devices[i] = ctx
+
     async def prepare1(self):
         await super().prepare1()
         self.nr = self.cfg['devices']
         self.devices = {}
         clients = {}
         for i in range(1,self.nr+1):
-
-            cfg = self.loc['dev_%d' % i]
-            host = cfg['host']
-            if host[0] == '/': # local device
-                raise NotImplementedError("local modbus")
-            else:
-                if ':' in host:
-                    host,port=host.split(':')
-                else:
-                    port = 502
-            try:
-                client = clients[(host,port)]
-            except KeyError:
-                (t,p) = await self.loop.create_connection(AioModbusClientProtocol, host=host, port=port)
-                client = clients[(host,port)] = p
-
-            ctx = RemoteSlaveContext(client)
-            ctx.unit = cfg.get('unit',1)
-            self.devices[i] = ctx
+            await self.start_client(i, clients)
 
         self.ctx = ModbusServerContext(slaves=self.devices, single=False)
         self.server = await self.loop.create_server(lambda: AioModbusServerProtocol(store=self.ctx, loop=self.loop, timeout=self.cfg.get('timeout',3)), host=None, port=self.cfg.get('port',502))

@@ -36,13 +36,14 @@ class ModbusException(RuntimeError):
 class AioModbusClientProtocol(ModbusClientMixin):
     transport = None
 
-    def __init__(self, framer=None, loop=None, **kwargs):
+    def __init__(self, framer=None, loop=None, reconnect=None, **kwargs):
         ''' Initializes the framer module
 
         :param framer: The framer to use for the protocol
         '''
         self.loop = loop
         self.framer = framer or ModbusSocketFramer(ClientDecoder())
+        self.reconnect = reconnect
         if isinstance(self.framer, ModbusSocketFramer):
             self.transaction = DictTransactionManager(self, **kwargs)
         else:
@@ -57,6 +58,8 @@ class AioModbusClientProtocol(ModbusClientMixin):
             exc = EOFError
         for tid in self.transaction:
             self.transaction.getTransaction(tid).set_exception(exc)
+        if self.reconnect is not None:
+            self.reconnect(exc)
     
     def data_received(self, data):
         self.framer.processIncomingPacket(data, self._handleResponse)
