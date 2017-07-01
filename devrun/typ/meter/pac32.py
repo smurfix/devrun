@@ -19,6 +19,7 @@ import struct
 
 from . import BusDevice
 from devrun.support.modbus import ModbusException
+from math import isnan
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,31 +39,31 @@ This module interfaces to a Siemens Sentron PAC3200 power meter via Modbus.
         await super().step1()
         while True:
             try:
-                val = await self.doubles(1,22) # current,power,VA
+                val = await self.floats(1,21) # current,power,VA
 
                 self.volt[0] = abs(val[0+self.phase1])
                 self.volt[1] = abs(val[0+self.phase2])
                 self.volt[2] = abs(val[0+self.phase3])
                 self.volts = sum(self.volt)/3
 
-                self.amp[0] = abs(val[7+self.phase1])
-                self.amp[1] = abs(val[7+self.phase2])
-                self.amp[2] = abs(val[7+self.phase3])
+                self.amp[0] = abs(val[6+self.phase1])
+                self.amp[1] = abs(val[6+self.phase2])
+                self.amp[2] = abs(val[6+self.phase3])
                 self.amp_max = max(self.amp)
 
-                self.watt[0] = abs(val[13+self.phase1])
-                self.watt[1] = abs(val[13+self.phase2])
-                self.watt[2] = abs(val[13+self.phase3])
+                self.watt[0] = abs(val[12+self.phase1])
+                self.watt[1] = abs(val[12+self.phase2])
+                self.watt[2] = abs(val[12+self.phase3])
 
-                self.VA[0] = abs(val[10+self.phase1])
-                self.VA[1] = abs(val[10+self.phase2])
-                self.VA[2] = abs(val[10+self.phase3])
+                self.VA[0] = abs(val[9+self.phase1])
+                self.VA[1] = abs(val[9+self.phase2])
+                self.VA[2] = abs(val[9+self.phase3])
 
-                self.factor[0] = abs(val[19+self.phase1])
-                self.factor[1] = abs(val[19+self.phase2])
-                self.factor[2] = abs(val[19+self.phase3])
+                self.factor[0] = 1 if isnan(val[18+self.phase1]) else abs(val[18+self.phase1])
+                self.factor[1] = 1 if isnan(val[18+self.phase2]) else abs(val[18+self.phase2])
+                self.factor[2] = 1 if isnan(val[18+self.phase3]) else abs(val[18+self.phase3])
 
-                val = await self.doubles(63,4) # total
+                val = await self.floats(63,2) # total
                 self.VAs = abs(val[0])
                 self.watts = abs(val[1])
 
