@@ -19,6 +19,7 @@ from devrun.support.modbus import ModbusException
 from pymodbus.client.async import ModbusClientProtocol
 from pymodbus.client.common import ModbusClientMixin
 from pymodbus.pdu import ExceptionResponse
+from functools import partial
 
 from . import BaseDevice
 from devrun.support.timing import Stats
@@ -50,7 +51,8 @@ or to a remote modbus gateway.
         dly = 1
         logger.info("%s: Restarting", self.name)
         while True:
-		await self.start_client()
+            try:
+                await self.start_client()
             except asyncio.CancelledError:
                 return
             except Exception as exc:
@@ -66,9 +68,9 @@ or to a remote modbus gateway.
         t = asyncio.ensure_future(self._restart())
         t.add_done_callback(self._restart_done)
 
-    async def start_client(self)
-	t,p = await self.loop.create_connection(partial(AioModbusClientProtocol, reconnect=self.restart), host=self.host, port=self.port)
-	self.proto = p
+    async def start_client(self):
+        t,p = await self.loop.create_connection(partial(AioModbusClientProtocol, reconnect=self.restart), host=self.host, port=self.port)
+        self.proto = p
 
     async def prepare1(self):
         await super().prepare1()
