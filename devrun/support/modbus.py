@@ -91,7 +91,7 @@ class AioModbusClientProtocol(ModbusClientMixin):
                         handler.set_exception(ModbusException(reply))
                     else:
                         handler.set_result(reply)
-                except asyncio.CancelledError:
+                except (asyncio.CancelledError,asyncio.InvalidStateError):
                     pass
             else:
                 logger.debug("Unrequested message: %s", reply)
